@@ -150,7 +150,8 @@
     <label><input type="checkbox" name="theme" value="pei"> プリンス・エドワード島</label>
     <label><input type="checkbox" name="theme" value="snow"> 雪と灯り</label>
     <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
-    <label><input type="checkbox" name="theme" value="retro"> 日本のレトロな街</label>
+    <label><input type="checkbox" name="theme" value="america"> アンコモン・プレイス（アメリカ）</label>
+    <label><input type="checkbox" name="theme" value="japan"> 何でもない日本の街</label>
     <small>Wikimedia Commons と Unsplash のときに効きます。</small>
   </section>
 
@@ -200,9 +201,17 @@
                unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'] },
     field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
                unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'] },
-    retro:   { commons: ['ginzan onsen', 'kinosaki onsen', 'narai-juku', 'tsumago', 'kurashiki bikan', 'onomichi', 'ine funaya', 'takayama old town',
-                         'japan old town street', 'shotengai', 'yokocho', 'yanaka', 'japan wooden station'],
-               unsplash: ['ginzan onsen', 'japan retro street', 'showa retro', 'japan shopping street evening', 'onsen town night', 'japan old town alley'] },
+    // 以下2つは「何でもない場所」。Commons の認定カテゴリは絵葉書的な風景に偏るので探さない（plain）
+    // アメリカは議会図書館の John Margolies（ロードサイド）と Carol M. Highsmith のアーカイブが中心。どれもパブリックドメイン
+    america: { plain: true,
+               commons: ['Margolies motel', 'Margolies gas station', 'Margolies sign', 'Margolies diner', 'Margolies store', 'Margolies theater',
+                         'Highsmith gas station', 'Highsmith motel', 'Highsmith main street', 'Highsmith neon', 'main street texas', 'diner exterior'],
+               unsplash: ['motel sign', 'gas station dusk americana', 'american diner exterior', 'small town main street usa', 'parking lot dusk', 'roadside america'] },
+    // 日本は狙って撮っている人が少ないので、シリーズで上げている撮影者の語（団地、住宅街、福岡の道路、常神の港町）を拾う
+    japan:   { plain: true,
+               commons: ['danchi', 'japan residential street', '"street view" fukuoka', 'japan level crossing street', 'incategory:"Snack bars in Japan"',
+                         'japan port town street', 'utility pole japan street', 'shotengai'],
+               unsplash: ['japan suburb street', 'japan residential alley', 'danchi', 'japan level crossing', 'japan snack bar night', 'japanese street evening quiet'] },
   };
 
   // ---------- 設定（URLのハッシュに残す） ----------
@@ -257,13 +266,16 @@
   function activeQueries() {
     const key = state.source === 'unsplash' ? 'unsplash' : 'commons';
     const list = [];
-    for (const t of state.themes) if (THEMES[t]) list.push(...THEMES[t][key]);
-    return list.length ? list : THEMES.blue[key];
+    const themes = state.themes.filter((t) => THEMES[t]);
+    for (const t of (themes.length ? themes : ['blue'])) {
+      const tiers = (state.source === 'unsplash' || THEMES[t].plain) ? [2] : [0, 1, 2];
+      for (const q of THEMES[t][key]) list.push({ q, tiers });
+    }
+    return list;
   }
   function buildFeeds() {
     feeds = [];
-    const tiers = state.source === 'unsplash' ? [2] : [0, 1, 2];
-    for (const tier of tiers) for (const q of activeQueries()) feeds.push({ q, tier, offset: 0, done: false });
+    for (const tier of [0, 1, 2]) for (const { q, tiers } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, offset: 0, done: false });
     feedCursor = Math.floor(Math.random() * 100);
   }
   // いちばん上の段階で、まだ残りのある検索語を順に回す
@@ -276,7 +288,8 @@
   }
   function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
   function prettyName(file) {
-    return file.replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/\s*[-–]\s*\d{4,}.*$/, '').trim();
+    return file.replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ')
+      .replace(/\s*LCCN\s*\d+.*$/i, '').replace(/,?\s*by John Margolies.*$/i, '').replace(/\s*[-–]\s*\d{4,}.*$/, '').trim();
   }
 
   async function fetchCommons(feed) {
