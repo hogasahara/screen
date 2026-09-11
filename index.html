@@ -202,10 +202,11 @@
     field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
                unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'] },
     // 以下2つは「何でもない場所」。Commons の認定カテゴリは絵葉書的な風景に偏るので探さない（plain）
-    // アメリカは議会図書館の John Margolies（ロードサイド）と Carol M. Highsmith のアーカイブが中心。どれもパブリックドメイン
-    america: { plain: true,
-               commons: ['Margolies motel', 'Margolies gas station', 'Margolies sign', 'Margolies diner', 'Margolies store', 'Margolies theater',
-                         'Highsmith gas station', 'Highsmith motel', 'Highsmith main street', 'Highsmith neon', 'main street texas', 'diner exterior'],
+    // アメリカは議会図書館の John Margolies のロードサイド写真だけ。彼自身が作家なので深く読んでも作品のまま（deep）。パブリックドメイン
+    america: { plain: true, deep: 400,
+               commons: ['"John Margolies" motel', '"John Margolies" gas station', '"John Margolies" restaurant', '"John Margolies" theater',
+                         '"John Margolies" store', '"John Margolies" drive-in', '"John Margolies" cabins', '"John Margolies" street',
+                         '"John Margolies" texas', '"John Margolies" california', '"John Margolies" florida', '"John Margolies" new york'],
                unsplash: ['motel sign', 'gas station dusk americana', 'american diner exterior', 'small town main street usa', 'parking lot dusk', 'roadside america'] },
     // 日本は狙って撮っている人が少ないので、シリーズで上げている撮影者の語（団地、住宅街、福岡の道路、常神の港町）を拾う
     japan:   { plain: true,
@@ -245,7 +246,7 @@
   const COMMONS_TIERS = [
     { name: '秀逸な画像', filter: 'incategory:"Featured pictures on Wikimedia Commons"', maxOffset: 200 },
     { name: '品質画像',   filter: 'incategory:"Quality images"',                        maxOffset: 400 },
-    { name: '',           filter: '',                                                    maxOffset: 160 },
+    { name: '',           filter: '',                                                    maxOffset: 80 },   // 関連度順は後ろほど外れる
   ];
   let pool = [];            // これから見せる {url, title, credit, id, tier}
   let history = new Map();  // 見せたことのある写真（id → photo）。繰り返しの元
@@ -268,13 +269,13 @@
     const themes = state.themes.filter((t) => THEMES[t]);
     for (const t of (themes.length ? themes : ['blue'])) {
       const tiers = (state.source === 'unsplash' || THEMES[t].plain) ? [2] : [0, 1, 2];
-      for (const q of THEMES[t][key]) list.push({ q, tiers });
+      for (const q of THEMES[t][key]) list.push({ q, tiers, deep: THEMES[t].deep });
     }
     return list;
   }
   function buildFeeds() {
     feeds = [];
-    for (const tier of [0, 1, 2]) for (const { q, tiers } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, offset: 0, done: false, buffer: [] });
+    for (const tier of [0, 1, 2]) for (const { q, tiers, deep } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, deep, offset: 0, done: false, buffer: [] });
   }
   function feedOpen(f) { return !f.done || f.buffer.length > 0; }
   function hasMore() { return feeds.some(feedOpen); }
@@ -282,7 +283,11 @@
   async function fill(feed) {
     const res = state.source === 'unsplash' ? await fetchUnsplash(feed) : await fetchCommons(feed);
     if (res.next == null) feed.done = true; else feed.offset = res.next;
-    for (const p of res.items) if (!seen.has(p.id)) { seen.add(p.id); found[p.tier]++; feed.buffer.push(p); }
+    for (const p of res.items) {
+      if (seen.has(p.id) || (p.dupKey && seen.has(p.dupKey))) continue;
+      seen.add(p.id); if (p.dupKey) seen.add(p.dupKey);
+      found[p.tier]++; feed.buffer.push(p);
+    }
   }
   function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
   function prettyName(file) {
@@ -310,16 +315,19 @@
       const artist = stripHtml(m.Artist && m.Artist.value);
       const lic = stripHtml(m.LicenseShortName && m.LicenseShortName.value);
       const objName = stripHtml(m.ObjectName && m.ObjectName.value);
+      const title = (objName && objName.length < 80 ? objName : prettyName(p.title));
       items.push({
         id: 'c' + p.pageid,
+        dupKey: title.length > 12 ? 't:' + title.toLowerCase() : null,   // 同じ写真が jpg と tif で二重に入っていることがある
         tier: feed.tier,
         url: ii.thumburl || ii.url,
-        title: (objName && objName.length < 80 ? objName : prettyName(p.title)),
+        title,
         credit: [tier.name, artist, lic, 'Wikimedia Commons'].filter(Boolean).join('　'),
       });
     }
     const nextOffset = d.continue && d.continue.gsroffset;
-    return { items, next: (nextOffset != null && nextOffset < tier.maxOffset) ? nextOffset : null };
+    const maxOffset = feed.deep || tier.maxOffset;
+    return { items, next: (nextOffset != null && nextOffset < maxOffset) ? nextOffset : null };
   }
 
   async function fetchUnsplash(feed) {
