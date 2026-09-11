@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>青の時間</title>
+<meta name="description" content="夕暮れと夜のあいだの写真を、写真集をめくるように流すスクリーンセーバー">
+<meta name="theme-color" content="#0a1224">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="青の時間">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --navy: #13213a;
+    --navy-deep: #0a1224;
+    --paper: #efe9dc;
+    --paper-dim: rgba(239, 233, 220, 0.62);
+    --amber: #d9a55c;
+    --mist: #8a97ad;
+    --serif: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Source Han Serif JP", Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--navy-deep); color: var(--paper); font-family: var(--serif); overflow: hidden; }
+  body { cursor: none; }
+  body.awake { cursor: default; }
+
+  /* 写真 */
+  #stage { position: fixed; inset: 0; background: var(--navy-deep); }
+  .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 4s ease-in-out; will-change: opacity; }
+  .slide.on { opacity: 1; }
+  .slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: center; will-change: transform; }
+  .slide.motion img { transition: transform var(--kb, 40s) linear; }
+
+  /* 青の時間のかぶせ・粒子 */
+  #tint { position: fixed; inset: 0; pointer-events: none; mix-blend-mode: multiply;
+    background: linear-gradient(180deg, rgb(22, 44, 96) 0%, rgb(38, 42, 82) 60%, rgb(52, 40, 60) 100%); opacity: 0.28; transition: opacity 1s; }
+  #grain { position: fixed; inset: -50%; width: 200%; height: 200%; pointer-events: none; opacity: 0.055;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  #vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(6, 10, 22, 0.42) 100%); }
+
+  /* 写真集のキャプションと時計 */
+  #caption { position: fixed; left: 4.5vw; bottom: 5.5vh; max-width: 46vw; line-height: 1.7; text-shadow: 0 1px 14px rgba(0,0,0,0.55); transition: opacity 1.5s; }
+  #cap-title { font-size: clamp(14px, 1.35vw, 20px); letter-spacing: 0.06em; }
+  #cap-credit { font-size: clamp(11px, 0.95vw, 14px); letter-spacing: 0.08em; color: var(--paper-dim); margin-top: 0.15em; }
+  #clock { position: fixed; right: 4.5vw; bottom: 5vh; text-align: right; text-shadow: 0 1px 14px rgba(0,0,0,0.55); transition: opacity 1.5s; }
+  #clock .time { font-size: clamp(34px, 5.2vw, 84px); font-weight: 300; letter-spacing: 0.05em; line-height: 1; }
+  #clock .date { font-size: clamp(11px, 1vw, 15px); letter-spacing: 0.14em; color: var(--paper-dim); margin-top: 0.6em; }
+  .hidden { opacity: 0 !important; }
+
+  /* 起きている時だけ見える操作 */
+  #hud { position: fixed; top: 3vh; right: 3vw; display: flex; gap: 10px; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+  body.awake #hud { opacity: 1; pointer-events: auto; }
+  #hud button { font: inherit; font-size: 13px; letter-spacing: 0.1em; color: var(--paper); background: rgba(10, 18, 36, 0.55); border: 1px solid rgba(239,233,220,0.25); padding: 8px 14px; cursor: pointer; backdrop-filter: blur(6px); }
+  #hud button:hover, #hud button:focus-visible { border-color: var(--amber); outline: none; }
+
+  #note { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; font-size: clamp(14px, 1.4vw, 18px); letter-spacing: 0.1em; line-height: 2; color: var(--paper-dim); max-width: 70vw; transition: opacity 1s; pointer-events: none; }
+
+  /* 設定 */
+  #panel { position: fixed; top: 0; right: 0; height: 100%; width: min(380px, 92vw); background: rgba(13, 22, 42, 0.92); backdrop-filter: blur(14px); border-left: 1px solid rgba(239,233,220,0.12);
+    transform: translateX(100%); transition: transform 0.45s cubic-bezier(.2,.8,.2,1); overflow-y: auto; padding: 32px 28px 48px; font-size: 14px; line-height: 1.8; }
+  #panel.open { transform: translateX(0); }
+  #panel h1 { font-size: 20px; font-weight: 400; letter-spacing: 0.2em; margin: 0 0 4px; }
+  #panel .lead { color: var(--mist); font-size: 12.5px; margin: 0 0 22px; letter-spacing: 0.05em; }
+  #panel section { border-top: 1px solid rgba(239,233,220,0.12); padding: 16px 0; }
+  #panel h2 { font-size: 13px; font-weight: 400; letter-spacing: 0.18em; color: var(--paper-dim); margin: 0 0 10px; }
+  #panel label { display: flex; align-items: center; gap: 10px; padding: 3px 0; cursor: pointer; }
+  #panel input[type=radio], #panel input[type=checkbox] { accent-color: var(--amber); width: 15px; height: 15px; margin: 0; }
+  #panel input[type=range] { width: 100%; accent-color: var(--amber); }
+  #panel input[type=text], #panel input[type=password] { width: 100%; font: inherit; font-size: 13px; color: var(--paper); background: rgba(0,0,0,0.3); border: 1px solid rgba(239,233,220,0.2); padding: 7px 10px; margin-top: 6px; }
+  #panel input[type=text]:focus, #panel input[type=password]:focus { outline: none; border-color: var(--amber); }
+  #panel .row { display: flex; justify-content: space-between; align-items: baseline; }
+  #panel .val { color: var(--amber); font-variant-numeric: tabular-nums; }
+  #panel button.file { font: inherit; font-size: 13px; color: var(--paper); background: transparent; border: 1px solid rgba(239,233,220,0.3); padding: 7px 14px; cursor: pointer; margin-top: 6px; letter-spacing: 0.06em; }
+  #panel button.file:hover { border-color: var(--amber); }
+  #panel small { display: block; color: var(--mist); font-size: 12px; line-height: 1.7; margin-top: 6px; }
+  #panel a { color: var(--amber); text-decoration: none; border-bottom: 1px solid rgba(217,165,92,0.4); }
+  #panel .sub { margin-left: 25px; }
+  #panel kbd { font-family: inherit; color: var(--paper); border: 1px solid rgba(239,233,220,0.3); padding: 0 6px; margin-right: 6px; font-size: 12px; }
+  #panel .keys div { color: var(--mist); font-size: 12.5px; }
+  #panel .close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--mist); font: inherit; font-size: 22px; cursor: pointer; }
+  #panel .status { color: var(--mist); font-size: 12px; margin-top: 8px; min-height: 1.6em; }
+
+  @media (max-width: 640px) {
+    #caption { max-width: 88vw; bottom: 16vh; }
+    #clock { right: auto; left: 4.5vw; text-align: left; bottom: 5vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition-duration: 1.5s; }
+    .slide.motion img { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div class="slide" id="slideA"><img alt=""></div>
+  <div class="slide" id="slideB"><img alt=""></div>
+</div>
+<div id="tint"></div>
+<div id="vignette"></div>
+<div id="grain"></div>
+
+<div id="note">写真を集めています</div>
+
+<div id="caption">
+  <div id="cap-title"></div>
+  <div id="cap-credit"></div>
+</div>
+<div id="clock">
+  <div class="time">--:--</div>
+  <div class="date"></div>
+</div>
+
+<div id="hud">
+  <button id="btnNext" type="button">次の一枚</button>
+  <button id="btnFull" type="button">全画面</button>
+  <button id="btnSettings" type="button">設定</button>
+</div>
+
+<div id="panel" aria-label="設定">
+  <button class="close" id="btnClose" type="button" aria-label="閉じる">×</button>
+  <h1>青の時間</h1>
+  <p class="lead">夕暮れと夜のあいだ、村の窓に灯りがともる頃の写真を、写真集をめくるように流します。</p>
+
+  <section>
+    <h2>写真の出どころ</h2>
+    <label><input type="radio" name="source" value="commons" checked> Wikimedia Commons（鍵いらず）</label>
+    <label><input type="radio" name="source" value="unsplash"> Unsplash（無料の鍵が必要、写真の質が高い）</label>
+    <div class="sub" id="unsplashBox" hidden>
+      <input type="password" id="unsplashKey" placeholder="Access Key を貼る" autocomplete="off">
+      <small><a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a> でアプリを1つ作ると発行されます。鍵はこのページのURLにだけ残ります。</small>
+    </div>
+    <label><input type="radio" name="source" value="local"> 自分のフォルダ</label>
+    <div class="sub">
+      <button class="file" id="btnPickImages" type="button">写真を選ぶ</button>
+      <input type="file" id="fileImages" accept="image/*" multiple hidden>
+      <small id="localCount">選んだ写真はこの端末の中だけで使われ、どこにも送られません。</small>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section>
+    <h2>テーマ</h2>
+    <label><input type="checkbox" name="theme" value="blue" checked> ブルーモーメント</label>
+    <label><input type="checkbox" name="theme" value="village" checked> ヨーロッパの村</label>
+    <label><input type="checkbox" name="theme" value="pei"> プリンス・エドワード島</label>
+    <label><input type="checkbox" name="theme" value="snow"> 雪と灯り</label>
+    <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
+    <small>Wikimedia Commons と Unsplash のときに効きます。</small>
+  </section>
+
+  <section>
+    <h2>見せかた</h2>
+    <div class="row"><span>切り替える間隔</span><span class="val" id="intervalVal">30秒</span></div>
+    <input type="range" id="interval" min="8" max="120" step="1" value="30">
+    <div class="row" style="margin-top:10px"><span>青の深さ</span><span class="val" id="tintVal">28</span></div>
+    <input type="range" id="tint" min="0" max="60" step="1" value="28">
+    <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
+    <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
+    <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
+  </section>
+
+  <section>
+    <h2>音楽</h2>
+    <button class="file" id="btnPickAudio" type="button">曲を選ぶ</button>
+    <input type="file" id="fileAudio" accept="audio/*" multiple hidden>
+    <small id="audioInfo">手元のアルバムから何曲でも。選んだ順に繰り返します。</small>
+    <audio id="audio"></audio>
+  </section>
+
+  <section>
+    <h2>キー</h2>
+    <div class="keys">
+      <div><kbd>Space</kbd>止める・進める</div>
+      <div><kbd>→</kbd>次の一枚</div>
+      <div><kbd>F</kbd>全画面</div>
+      <div><kbd>C</kbd>キャプション</div>
+      <div><kbd>S</kbd>この設定</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- テーマごとの検索語 ----------
+  // Commons は英語の一般語がいちばん当たる。Unsplash は少し詩的でも通じる。
+  const THEMES = {
+    blue:    { commons: ['blue hour village', 'twilight village lights', 'dusk lake reflection village', 'blue hour lighthouse'],
+               unsplash: ['blue hour village', 'twilight village lights', 'dusk lake reflection'] },
+    village: { commons: ['hilltop village provence', 'village tuscany morning', 'alsace village', 'cotswolds village', 'village dolomites valley'],
+               unsplash: ['provence hilltop village', 'tuscany village morning', 'alsace village', 'cotswolds village'] },
+    pei:     { commons: ['prince edward island landscape', 'prince edward island lighthouse', 'prince edward island red cliffs', 'lupine field'],
+               unsplash: ['prince edward island', 'red cliffs lighthouse coast', 'lupine field'] },
+    snow:    { commons: ['snow village night lights', 'winter village dusk', 'snowy chalet evening', 'snow church village'],
+               unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'] },
+    field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
+               unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'] },
+  };
+
+  // ---------- 設定（URLのハッシュに残す） ----------
+  const state = {
+    source: 'commons', unsplashKey: '', themes: ['blue', 'village'],
+    interval: 30, tint: 28, motion: true, caption: true, clock: true,
+  };
+  function loadState() {
+    try {
+      const h = location.hash.slice(1);
+      if (!h) return;
+      Object.assign(state, JSON.parse(decodeURIComponent(escape(atob(h)))));
+    } catch (e) {}
+  }
+  function saveState() {
+    try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(JSON.stringify(state))))); } catch (e) {}
+  }
+  loadState();
+
+  // ---------- DOM ----------
+  const $ = (s) => document.querySelector(s);
+  const slides = [$('#slideA'), $('#slideB')];
+  const tintEl = $('#tint'), note = $('#note'), status = $('#status');
+  const capTitle = $('#cap-title'), capCredit = $('#cap-credit');
+  const captionEl = $('#caption'), clockEl = $('#clock'), panel = $('#panel');
+  const audio = $('#audio');
+
+  // ---------- 写真の在庫 ----------
+  let pool = [];            // {url, title, credit, id}
+  let seen = new Set();
+  let queryCursor = 0;
+  let fetching = false;
+  let localUrls = [];
+  let current = 0;          // 表示中のスライド番号
+  let timer = null;
+  let paused = false;
+  let generation = 0;       // 出どころを変えたら古い取得結果を捨てる
+
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function activeQueries() {
+    const key = state.source === 'unsplash' ? 'unsplash' : 'commons';
+    const list = [];
+    for (const t of state.themes) if (THEMES[t]) list.push(...THEMES[t][key]);
+    return list.length ? list : THEMES.blue[key];
+  }
+  function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
+  function prettyName(file) {
+    return file.replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/\s*[-–]\s*\d{4,}.*$/, '').trim();
+  }
+
+  async function fetchCommons(q) {
+    const search = `${q} filetype:bitmap`;
+    const url = 'https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({
+      action: 'query', generator: 'search', gsrsearch: search, gsrnamespace: '6', gsrlimit: '40',
+      prop: 'imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', format: 'json', origin: '*',
+    });
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('commons ' + r.status);
+    const d = await r.json();
+    const pages = Object.values((d.query && d.query.pages) || {});
+    const out = [];
+    for (const p of pages) {
+      const ii = p.imageinfo && p.imageinfo[0];
+      if (!ii) continue;
+      if (ii.width < 1600 || ii.width / ii.height < 1.15) continue;   // 大きな横位置だけ
+      const m = ii.extmetadata || {};
+      const artist = stripHtml(m.Artist && m.Artist.value);
+      const lic = stripHtml(m.LicenseShortName && m.LicenseShortName.value);
+      const objName = stripHtml(m.ObjectName && m.ObjectName.value);
+      out.push({
+        id: 'c' + p.pageid,
+        url: ii.thumburl || ii.url,
+        title: (objName && objName.length < 80 ? objName : prettyName(p.title)),
+        credit: [artist, lic, 'Wikimedia Commons'].filter(Boolean).join('　'),
+      });
+    }
+    return out;
+  }
+
+  async function fetchUnsplash(q) {
+    if (!state.unsplashKey) throw new Error('nokey');
+    const url = 'https://api.unsplash.com/search/photos?' + new URLSearchParams({
+      query: q, orientation: 'landscape', per_page: '30', content_filter: 'high', page: String(1 + Math.floor(Math.random() * 3)),
+    });
+    const r = await fetch(url, { headers: { Authorization: 'Client-ID ' + state.unsplashKey, 'Accept-Version': 'v1' } });
+    if (r.status === 401 || r.status === 403) throw new Error('badkey');
+    if (!r.ok) throw new Error('unsplash ' + r.status);
+    const d = await r.json();
+    return (d.results || []).map((p) => ({
+      id: 'u' + p.id,
+      url: p.urls.raw + '&w=2400&q=82&fm=jpg&fit=max',
+      title: (p.location && p.location.name) || p.description || p.alt_description || '',
+      credit: ((p.user && p.user.name) || '') + '　Unsplash',
+    }));
+  }
+
+  async function refill() {
+    if (fetching) return;
+    if (state.source === 'local') return;
+    fetching = true;
+    const gen = generation;
+    const qs = activeQueries();
+    try {
+      let got = [];
+      for (let tries = 0; tries < qs.length && got.length < 8; tries++) {
+        const q = qs[queryCursor % qs.length]; queryCursor++;
+        const res = state.source === 'unsplash' ? await fetchUnsplash(q) : await fetchCommons(q);
+        got.push(...res.filter((p) => !seen.has(p.id)));
+      }
+      if (gen !== generation) return;
+      for (const p of got) seen.add(p.id);
+      pool.push(...shuffle(got));
+      status.textContent = pool.length ? `${seen.size}枚を見つけました` : '見つかりませんでした。テーマを増やしてみてください。';
+      if (seen.size > 600) seen = new Set();   // いつか再登場してよい
+    } catch (e) {
+      if (gen !== generation) return;
+      if (e.message === 'nokey') status.textContent = 'Unsplash の Access Key を入れてください。';
+      else if (e.message === 'badkey') status.textContent = 'この鍵では Unsplash に断られました。';
+      else status.textContent = '取りに行けませんでした。通信を確かめてもう一度。';
+      note.textContent = status.textContent;
+    } finally {
+      fetching = false;
+    }
+  }
+
+  function nextPhoto() {
+    if (state.source === 'local') {
+      if (!localUrls.length) return null;
+      return localUrls[Math.floor(Math.random() * localUrls.length)];
+    }
+    if (pool.length < 6) refill();
+    return pool.shift() || null;
+  }
+
+  // ---------- 表示 ----------
+  function preload(url) {
+    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  }
+  function kenBurns(img, seconds) {
+    if (!state.motion) { img.style.transition = 'none'; img.style.transform = 'scale(1.03)'; return; }
+    const s0 = 1.04 + Math.random() * 0.04, s1 = s0 + 0.08 + Math.random() * 0.06;
+    const x0 = (Math.random() - 0.5) * 3, y0 = (Math.random() - 0.5) * 3;
+    const x1 = (Math.random() - 0.5) * 3, y1 = (Math.random() - 0.5) * 3;
+    const swap = Math.random() < 0.5;   // 寄る／引く を半々
+    img.style.transition = 'none';
+    img.style.transform = swap ? `scale(${s1}) translate(${x1}%, ${y1}%)` : `scale(${s0}) translate(${x0}%, ${y0}%)`;
+    void img.offsetWidth;
+    img.parentElement.style.setProperty('--kb', (seconds + 6) + 's');
+    img.style.transition = '';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      img.style.transform = swap ? `scale(${s0}) translate(${x0}%, ${y0}%)` : `scale(${s1}) translate(${x1}%, ${y1}%)`;
+    }));
+  }
+
+  let advancing = false;
+  async function advance() {
+    if (advancing) return;
+    advancing = true;
+    clearTimeout(timer);
+    let photo = null;
+    for (let i = 0; i < 4 && !photo; i++) {
+      const cand = nextPhoto();
+      if (!cand) { if (state.source !== 'local') await refill(); continue; }
+      try { await preload(cand.url); photo = cand; } catch (e) { /* 壊れた画像は飛ばす */ }
+    }
+    if (!photo) {
+      note.textContent = state.source === 'local' ? '設定から写真を選んでください' : (status.textContent || '写真を集めています');
+      note.classList.remove('hidden');
+      advancing = false;
+      timer = setTimeout(advance, 5000);
+      return;
+    }
+    note.classList.add('hidden');
+    const incoming = slides[1 - current], outgoing = slides[current];
+    const img = incoming.querySelector('img');
+    img.src = photo.url;
+    incoming.classList.toggle('motion', state.motion);
+    kenBurns(img, state.interval);
+    incoming.classList.add('on');
+    outgoing.classList.remove('on');
+    current = 1 - current;
+    capTitle.textContent = photo.title || '';
+    capCredit.textContent = photo.credit || '';
+    advancing = false;
+    if (!paused) timer = setTimeout(advance, state.interval * 1000);
+  }
+
+  function restartSource() {
+    generation++;
+    pool = []; seen = new Set(); queryCursor = Math.floor(Math.random() * 100); fetching = false;
+    status.textContent = '';
+    note.textContent = '写真を集めています';
+    note.classList.remove('hidden');
+    advance();
+  }
+
+  // ---------- 時計 ----------
+  const DAYS = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+  function tick() {
+    const n = new Date();
+    clockEl.querySelector('.time').textContent = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+    clockEl.querySelector('.date').textContent = `${n.getMonth() + 1}月${n.getDate()}日　${DAYS[n.getDay()]}`;
+  }
+  setInterval(tick, 1000); tick();
+
+  // ---------- 目を覚ます／眠る ----------
+  let sleepTimer = null;
+  function wake() {
+    document.body.classList.add('awake');
+    clearTimeout(sleepTimer);
+    sleepTimer = setTimeout(() => { if (!panel.classList.contains('open')) document.body.classList.remove('awake'); }, 3500);
+  }
+  ['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, wake, { passive: true }));
+
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+  }
+  function togglePanel(force) {
+    const open = force === undefined ? !panel.classList.contains('open') : force;
+    panel.classList.toggle('open', open);
+    if (open) wake();
+  }
+
+  $('#btnNext').addEventListener('click', () => advance());
+  $('#btnFull').addEventListener('click', toggleFull);
+  $('#btnSettings').addEventListener('click', () => togglePanel());
+  $('#btnClose').addEventListener('click', () => togglePanel(false));
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key === ' ') { e.preventDefault(); paused = !paused; if (paused) clearTimeout(timer); else advance(); }
+    else if (e.key === 'ArrowRight') advance();
+    else if (e.key === 'f' || e.key === 'F') toggleFull();
+    else if (e.key === 'c' || e.key === 'C') { state.caption = !state.caption; applyView(); saveState(); $('#showCaption').checked = state.caption; }
+    else if (e.key === 's' || e.key === 'S') togglePanel();
+    else if (e.key === 'Escape') togglePanel(false);
+  });
+
+  // ---------- 設定の配線 ----------
+  function applyView() {
+    tintEl.style.opacity = state.tint / 100;
+    captionEl.classList.toggle('hidden', !state.caption);
+    clockEl.classList.toggle('hidden', !state.clock);
+    $('#intervalVal').textContent = state.interval + '秒';
+    $('#tintVal').textContent = state.tint;
+    $('#unsplashBox').hidden = state.source !== 'unsplash';
+  }
+  function syncForm() {
+    document.querySelector(`input[name=source][value=${state.source}]`).checked = true;
+    $('#unsplashKey').value = state.unsplashKey;
+    document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
+    $('#interval').value = state.interval; $('#tint').value = state.tint;
+    $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock;
+  }
+  syncForm(); applyView();
+
+  document.querySelectorAll('input[name=source]').forEach((r) => r.addEventListener('change', () => {
+    state.source = r.value; applyView(); saveState();
+    if (state.source !== 'unsplash' || state.unsplashKey) restartSource();
+  }));
+  $('#unsplashKey').addEventListener('change', () => { state.unsplashKey = $('#unsplashKey').value.trim(); saveState(); if (state.source === 'unsplash') restartSource(); });
+  document.querySelectorAll('input[name=theme]').forEach((c) => c.addEventListener('change', () => {
+    state.themes = [...document.querySelectorAll('input[name=theme]:checked')].map((x) => x.value);
+    saveState(); if (state.source !== 'local') restartSource();
+  }));
+  $('#interval').addEventListener('input', () => { state.interval = +$('#interval').value; applyView(); saveState(); });
+  $('#tint').addEventListener('input', () => { state.tint = +$('#tint').value; applyView(); saveState(); });
+  $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
+  $('#showCaption').addEventListener('change', () => { state.caption = $('#showCaption').checked; applyView(); saveState(); });
+  $('#showClock').addEventListener('change', () => { state.clock = $('#showClock').checked; applyView(); saveState(); });
+
+  // 自分の写真
+  $('#btnPickImages').addEventListener('click', () => $('#fileImages').click());
+  $('#fileImages').addEventListener('change', (e) => {
+    localUrls.forEach((p) => URL.revokeObjectURL(p.url));
+    localUrls = [...e.target.files].filter((f) => f.type.startsWith('image/')).map((f) => ({
+      id: 'l' + f.name, url: URL.createObjectURL(f), title: f.name.replace(/\.[a-z0-9]+$/i, ''), credit: '',
+    }));
+    $('#localCount').textContent = localUrls.length ? `${localUrls.length}枚を選びました。` : '写真が選ばれていません。';
+    if (localUrls.length) { state.source = 'local'; syncForm(); applyView(); saveState(); restartSource(); }
+  });
+
+  // 音楽（手元のファイルをその場で再生、保存はしない）
+  let tracks = [], trackIdx = 0;
+  $('#btnPickAudio').addEventListener('click', () => $('#fileAudio').click());
+  $('#fileAudio').addEventListener('change', (e) => {
+    tracks.forEach((t) => URL.revokeObjectURL(t.url));
+    tracks = [...e.target.files].map((f) => ({ url: URL.createObjectURL(f), name: f.name.replace(/\.[a-z0-9]+$/i, '') }));
+    trackIdx = 0;
+    if (tracks.length) playTrack();
+  });
+  function playTrack() {
+    if (!tracks.length) return;
+    const t = tracks[trackIdx % tracks.length];
+    audio.src = t.url;
+    audio.play().catch(() => {});
+    $('#audioInfo').textContent = `再生中　${t.name}（${trackIdx % tracks.length + 1} / ${tracks.length}）`;
+  }
+  audio.addEventListener('ended', () => { trackIdx++; playTrack(); });
+
+  // ---------- はじまり ----------
+  wake();
+  advance();
+})();
+</script>
+</body>
+</html>
