@@ -251,8 +251,7 @@
   let history = new Map();  // 見せたことのある写真（id → photo）。繰り返しの元
   let recent = [];          // 直近に見せた id。繰り返しの頭で同じ写真が続かないように
   let seen = new Set();     // 取ってきた写真の id（同じ写真が別の語でも出るので）
-  let feeds = [];           // 取りに行く先 {q, tier, offset, done}
-  let feedCursor = 0;
+  let feeds = [];           // 取りに行く先 {q, tier, offset, done, buffer}。buffer は取ってきてまだ在庫に出していない写真
   let found = [0, 0, 0];    // 段階ごとに見つけた枚数
   let looping = false;
   let fetching = false;
@@ -275,16 +274,15 @@
   }
   function buildFeeds() {
     feeds = [];
-    for (const tier of [0, 1, 2]) for (const { q, tiers } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, offset: 0, done: false });
-    feedCursor = Math.floor(Math.random() * 100);
+    for (const tier of [0, 1, 2]) for (const { q, tiers } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, offset: 0, done: false, buffer: [] });
   }
-  // いちばん上の段階で、まだ残りのある検索語を順に回す
-  function nextFeed() {
-    for (const tier of [0, 1, 2]) {
-      const open = feeds.filter((f) => f.tier === tier && !f.done);
-      if (open.length) { const f = open[feedCursor % open.length]; feedCursor++; return f; }
-    }
-    return null;
+  function feedOpen(f) { return !f.done || f.buffer.length > 0; }
+  function hasMore() { return feeds.some(feedOpen); }
+  // 1つの検索語の続きを取ってきて、その語のバッファに足す
+  async function fill(feed) {
+    const res = state.source === 'unsplash' ? await fetchUnsplash(feed) : await fetchCommons(feed);
+    if (res.next == null) feed.done = true; else feed.offset = res.next;
+    for (const p of res.items) if (!seen.has(p.id)) { seen.add(p.id); found[p.tier]++; feed.buffer.push(p); }
   }
   function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
   function prettyName(file) {
@@ -347,7 +345,7 @@
   function updateStatus() {
     if (state.source === 'local') return;
     const total = found[0] + found[1] + found[2];
-    if (!total) { status.textContent = nextFeed() ? '写真を集めています' : '見つかりませんでした。テーマを増やしてみてください。'; return; }
+    if (!total) { status.textContent = hasMore() ? '写真を集めています' : '見つかりませんでした。テーマを増やしてみてください。'; return; }
     const parts = [];
     if (state.source === 'commons') {
       if (found[0]) parts.push(`秀逸 ${found[0]}`);
@@ -364,17 +362,22 @@
     fetching = true;
     const gen = generation;
     try {
+      // いちばん上の段階で残りのある語をぜんぶ対象に、バッファの空いたものは並べて取りに行き、
+      // それぞれのバッファから少しずつ均等に取って混ぜる。1つの語が続かないように
       const got = [];
-      for (let calls = 0; calls < 4 && got.length < 8; calls++) {
-        const feed = nextFeed();
-        if (!feed) break;
-        const res = state.source === 'unsplash' ? await fetchUnsplash(feed) : await fetchCommons(feed);
+      for (const tier of [0, 1, 2]) {
+        const open = feeds.filter((f) => f.tier === tier && feedOpen(f));
+        if (!open.length) continue;
+        const empty = open.filter((f) => !f.buffer.length && !f.done).slice(0, 6);
+        await Promise.all(empty.map((f) => fill(f)));
         if (gen !== generation) return;
-        if (res.next == null) feed.done = true; else feed.offset = res.next;
-        for (const p of res.items) if (!seen.has(p.id)) { seen.add(p.id); found[p.tier]++; got.push(p); }
+        for (let round = 0; round < 3 && got.length < 12; round++) {
+          for (const f of shuffle(open.slice())) if (f.buffer.length) got.push(f.buffer.shift());
+        }
+        if (got.length) break;
       }
       pool.push(...shuffle(got));
-      if (!pool.length && !nextFeed()) recycle();
+      if (!pool.length && !hasMore()) recycle();
       updateStatus();
     } catch (e) {
       if (gen !== generation) return;
@@ -404,8 +407,8 @@
       if (!pool.length) pool = shuffle(localUrls.slice());   // 全部見せてから混ぜ直す
       return pool.shift();
     }
-    if (pool.length < 6 && nextFeed()) refill();
-    if (!pool.length && !fetching && !nextFeed()) recycle();
+    if (pool.length < 6 && hasMore()) refill();
+    if (!pool.length && !fetching && !hasMore()) recycle();
     return pool.shift() || null;
   }
 
