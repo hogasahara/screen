@@ -150,6 +150,7 @@
     <label><input type="checkbox" name="theme" value="pei"> プリンス・エドワード島</label>
     <label><input type="checkbox" name="theme" value="snow"> 雪と灯り</label>
     <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
+    <label><input type="checkbox" name="theme" value="retro"> 日本のレトロな街</label>
     <small>Wikimedia Commons と Unsplash のときに効きます。</small>
   </section>
 
@@ -199,6 +200,9 @@
                unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'] },
     field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
                unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'] },
+    retro:   { commons: ['ginzan onsen', 'kinosaki onsen', 'narai-juku', 'tsumago', 'kurashiki bikan', 'onomichi', 'ine funaya', 'takayama old town',
+                         'japan old town street', 'shotengai', 'yokocho', 'yanaka', 'japan wooden station'],
+               unsplash: ['ginzan onsen', 'japan retro street', 'showa retro', 'japan shopping street evening', 'onsen town night', 'japan old town alley'] },
   };
 
   // ---------- 設定（URLのハッシュに残す） ----------
@@ -227,9 +231,21 @@
   const audio = $('#audio');
 
   // ---------- 写真の在庫 ----------
-  let pool = [];            // {url, title, credit, id}
-  let seen = new Set();
-  let queryCursor = 0;
+  // Commons は 秀逸な画像 → 品質画像 → 通常検索 の順に取りに行く。
+  // 全部見終わったら、見せた写真をシャッフルして繰り返す。
+  const COMMONS_TIERS = [
+    { name: '秀逸な画像', filter: 'incategory:"Featured pictures on Wikimedia Commons"', maxOffset: 200 },
+    { name: '品質画像',   filter: 'incategory:"Quality images"',                        maxOffset: 400 },
+    { name: '',           filter: '',                                                    maxOffset: 160 },
+  ];
+  let pool = [];            // これから見せる {url, title, credit, id, tier}
+  let history = new Map();  // 見せたことのある写真（id → photo）。繰り返しの元
+  let recent = [];          // 直近に見せた id。繰り返しの頭で同じ写真が続かないように
+  let seen = new Set();     // 取ってきた写真の id（同じ写真が別の語でも出るので）
+  let feeds = [];           // 取りに行く先 {q, tier, offset, done}
+  let feedCursor = 0;
+  let found = [0, 0, 0];    // 段階ごとに見つけた枚数
+  let looping = false;
   let fetching = false;
   let localUrls = [];
   let current = 0;          // 表示中のスライド番号
@@ -244,22 +260,37 @@
     for (const t of state.themes) if (THEMES[t]) list.push(...THEMES[t][key]);
     return list.length ? list : THEMES.blue[key];
   }
+  function buildFeeds() {
+    feeds = [];
+    const tiers = state.source === 'unsplash' ? [2] : [0, 1, 2];
+    for (const tier of tiers) for (const q of activeQueries()) feeds.push({ q, tier, offset: 0, done: false });
+    feedCursor = Math.floor(Math.random() * 100);
+  }
+  // いちばん上の段階で、まだ残りのある検索語を順に回す
+  function nextFeed() {
+    for (const tier of [0, 1, 2]) {
+      const open = feeds.filter((f) => f.tier === tier && !f.done);
+      if (open.length) { const f = open[feedCursor % open.length]; feedCursor++; return f; }
+    }
+    return null;
+  }
   function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
   function prettyName(file) {
     return file.replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, '').replace(/[_]+/g, ' ').replace(/\s*[-–]\s*\d{4,}.*$/, '').trim();
   }
 
-  async function fetchCommons(q) {
-    const search = `${q} filetype:bitmap`;
+  async function fetchCommons(feed) {
+    const tier = COMMONS_TIERS[feed.tier];
     const url = 'https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({
-      action: 'query', generator: 'search', gsrsearch: search, gsrnamespace: '6', gsrlimit: '40',
+      action: 'query', generator: 'search', gsrsearch: `${feed.q} filetype:bitmap ${tier.filter}`.trim(),
+      gsrnamespace: '6', gsrlimit: '40', gsroffset: String(feed.offset),
       prop: 'imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', format: 'json', origin: '*',
     });
     const r = await fetch(url);
     if (!r.ok) throw new Error('commons ' + r.status);
     const d = await r.json();
     const pages = Object.values((d.query && d.query.pages) || {});
-    const out = [];
+    const items = [];
     for (const p of pages) {
       const ii = p.imageinfo && p.imageinfo[0];
       if (!ii) continue;
@@ -268,31 +299,50 @@
       const artist = stripHtml(m.Artist && m.Artist.value);
       const lic = stripHtml(m.LicenseShortName && m.LicenseShortName.value);
       const objName = stripHtml(m.ObjectName && m.ObjectName.value);
-      out.push({
+      items.push({
         id: 'c' + p.pageid,
+        tier: feed.tier,
         url: ii.thumburl || ii.url,
         title: (objName && objName.length < 80 ? objName : prettyName(p.title)),
-        credit: [artist, lic, 'Wikimedia Commons'].filter(Boolean).join('　'),
+        credit: [tier.name, artist, lic, 'Wikimedia Commons'].filter(Boolean).join('　'),
       });
     }
-    return out;
+    const nextOffset = d.continue && d.continue.gsroffset;
+    return { items, next: (nextOffset != null && nextOffset < tier.maxOffset) ? nextOffset : null };
   }
 
-  async function fetchUnsplash(q) {
+  async function fetchUnsplash(feed) {
     if (!state.unsplashKey) throw new Error('nokey');
+    const page = feed.offset + 1;
     const url = 'https://api.unsplash.com/search/photos?' + new URLSearchParams({
-      query: q, orientation: 'landscape', per_page: '30', content_filter: 'high', page: String(1 + Math.floor(Math.random() * 3)),
+      query: feed.q, orientation: 'landscape', per_page: '30', content_filter: 'high', page: String(page),
     });
     const r = await fetch(url, { headers: { Authorization: 'Client-ID ' + state.unsplashKey, 'Accept-Version': 'v1' } });
     if (r.status === 401 || r.status === 403) throw new Error('badkey');
     if (!r.ok) throw new Error('unsplash ' + r.status);
     const d = await r.json();
-    return (d.results || []).map((p) => ({
+    const items = (d.results || []).map((p) => ({
       id: 'u' + p.id,
+      tier: 2,
       url: p.urls.raw + '&w=2400&q=82&fm=jpg&fit=max',
       title: (p.location && p.location.name) || p.description || p.alt_description || '',
       credit: ((p.user && p.user.name) || '') + '　Unsplash',
     }));
+    return { items, next: page < Math.min(d.total_pages || 0, 5) ? page : null };
+  }
+
+  function updateStatus() {
+    if (state.source === 'local') return;
+    const total = found[0] + found[1] + found[2];
+    if (!total) { status.textContent = nextFeed() ? '写真を集めています' : '見つかりませんでした。テーマを増やしてみてください。'; return; }
+    const parts = [];
+    if (state.source === 'commons') {
+      if (found[0]) parts.push(`秀逸 ${found[0]}`);
+      if (found[1]) parts.push(`品質 ${found[1]}`);
+      if (found[2]) parts.push(`ほか ${found[2]}`);
+    }
+    const detail = parts.length ? `（${parts.join('・')}）` : '';
+    status.textContent = looping ? `${total}枚を一巡しました。繰り返しています。${detail}` : `${total}枚を見つけました${detail}`;
   }
 
   async function refill() {
@@ -300,19 +350,19 @@
     if (state.source === 'local') return;
     fetching = true;
     const gen = generation;
-    const qs = activeQueries();
     try {
-      let got = [];
-      for (let tries = 0; tries < qs.length && got.length < 8; tries++) {
-        const q = qs[queryCursor % qs.length]; queryCursor++;
-        const res = state.source === 'unsplash' ? await fetchUnsplash(q) : await fetchCommons(q);
-        got.push(...res.filter((p) => !seen.has(p.id)));
+      const got = [];
+      for (let calls = 0; calls < 4 && got.length < 8; calls++) {
+        const feed = nextFeed();
+        if (!feed) break;
+        const res = state.source === 'unsplash' ? await fetchUnsplash(feed) : await fetchCommons(feed);
+        if (gen !== generation) return;
+        if (res.next == null) feed.done = true; else feed.offset = res.next;
+        for (const p of res.items) if (!seen.has(p.id)) { seen.add(p.id); found[p.tier]++; got.push(p); }
       }
-      if (gen !== generation) return;
-      for (const p of got) seen.add(p.id);
       pool.push(...shuffle(got));
-      status.textContent = pool.length ? `${seen.size}枚を見つけました` : '見つかりませんでした。テーマを増やしてみてください。';
-      if (seen.size > 600) seen = new Set();   // いつか再登場してよい
+      if (!pool.length && !nextFeed()) recycle();
+      updateStatus();
     } catch (e) {
       if (gen !== generation) return;
       if (e.message === 'nokey') status.textContent = 'Unsplash の Access Key を入れてください。';
@@ -324,12 +374,25 @@
     }
   }
 
+  // 見せた写真を混ぜ直して在庫に戻す。直近に見せたものは後ろへ
+  function recycle() {
+    if (!history.size) return;
+    const hold = new Set(recent.slice(-Math.min(recent.length, Math.floor(history.size / 2))));
+    const older = [], newer = [];
+    for (const p of history.values()) (hold.has(p.id) ? newer : older).push(p);
+    pool.push(...shuffle(older), ...shuffle(newer));
+    looping = true;
+    updateStatus();
+  }
+
   function nextPhoto() {
     if (state.source === 'local') {
       if (!localUrls.length) return null;
-      return localUrls[Math.floor(Math.random() * localUrls.length)];
+      if (!pool.length) pool = shuffle(localUrls.slice());   // 全部見せてから混ぜ直す
+      return pool.shift();
     }
-    if (pool.length < 6) refill();
+    if (pool.length < 6 && nextFeed()) refill();
+    if (!pool.length && !fetching && !nextFeed()) recycle();
     return pool.shift() || null;
   }
 
@@ -382,13 +445,16 @@
     current = 1 - current;
     capTitle.textContent = photo.title || '';
     capCredit.textContent = photo.credit || '';
+    history.set(photo.id, photo);
+    recent.push(photo.id); if (recent.length > 24) recent.shift();
     advancing = false;
     if (!paused) timer = setTimeout(advance, state.interval * 1000);
   }
 
   function restartSource() {
     generation++;
-    pool = []; seen = new Set(); queryCursor = Math.floor(Math.random() * 100); fetching = false;
+    pool = []; history = new Map(); recent = []; seen = new Set(); found = [0, 0, 0]; looping = false; fetching = false;
+    buildFeeds();
     status.textContent = '';
     note.textContent = '写真を集めています';
     note.classList.remove('hidden');
@@ -501,6 +567,7 @@
   audio.addEventListener('ended', () => { trackIdx++; playTrack(); });
 
   // ---------- はじまり ----------
+  buildFeeds();
   wake();
   advance();
 })();
