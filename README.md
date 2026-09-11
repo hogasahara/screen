@@ -32,7 +32,10 @@
 
 - **Wikimedia Commons**（既定、鍵いらず）
 - **Unsplash**（[無料の Access Key](https://unsplash.com/developers) が必要、写真の質が高い）
+- **Flickr**（[無料の API Key](https://www.flickr.com/services/apps/create/apply/) が必要、街の写真が厚い。CC ライセンスの写真だけを、反応の多かった順に取ります）
 - **自分のフォルダ**
+
+鍵は設定画面に貼るだけです。ページの URL にだけ残り、どこにも送られません。
 
 Wikimedia Commons では、風景のテーマはコミュニティが認定した「秀逸な画像」「品質画像」から先に取り、
 足りなければ通常の検索結果で補います。「アンコモン・プレイス」は米国議会図書館の John Margolies と
@@ -40,7 +43,7 @@ Carol M. Highsmith のアーカイブ（パブリックドメイン）から、�
 シリーズで撮っている投稿者の写真から取ります。全部見終わったら、見た写真を混ぜ直して繰り返します。
 
 設定はページの URL（`#` 以降）に残ります。ブックマークしておくと同じ設定で開けます。
-Unsplash の鍵も URL にだけ残るので、URL を人に渡すときは鍵の部分に注意してください。
+Unsplash や Flickr の鍵も URL にだけ残るので、URL を人に渡すときは鍵の部分に注意してください。
 
 ### ホーム画面に追加
 

@@ -10,10 +10,11 @@
 - 吉村和敏の写真集の雰囲気。ブルーモーメント（夕暮れと夜のあいだ）、ヨーロッパの村、プリンス・エドワード島、雪の村と灯り、田園と空。
 - 写真は「保存せず、その場で取ってきて眺める」。自分のサーバーに複製しない。
 - XやInstagramの埋め込みは、投稿の枠やボタンが付くのでスクリーンセーバー用途には不向きと判断して不採用。
-- 写真の出どころは以下の3つ：
+- 写真の出どころは以下の4つ：
   1. Wikimedia Commons（鍵不要、CORS可、`origin=*`）。当たり外れはあるが良い写真もある
   2. Unsplash API（無料のAccess Keyが必要、質が高い）
-  3. 自分の写真フォルダ（端末内で完結、どこにも送らない）
+  3. Flickr API（無料のAPI Keyが必要、CORS可）。CC系ライセンスだけ、`sort=interestingness-desc`。街のスナップが厚いので「何でもない日本」向き
+  4. 自分の写真フォルダ（端末内で完結、どこにも送らない）
 
 ## いま出来ているもの：`blue-moment.html`
 
@@ -61,7 +62,11 @@
 - 実機で「精度がいまいち」という評価。原因は2つ。上位7枚は良くてもページ送りで深く読むと崩れる語があること（通常検索を80件までにして対処）と、Commons のアマチュア記録写真には「何でもない場所」ではあっても作品としての構図と光の意図がないこと。本物さと雑さは別物で、日本側はここが限界
 - 日本の「何でもない街」は Commons に狙って撮る人が少ない。当たるのは、シリーズで上げている投稿者の語：`danchi`（団地の街路）、`japan residential street`（青山の住宅街シリーズ）、`"street view" fukuoka`（福岡の道路）、`japan port town street`（常神の港町）、`japan level crossing street`（踏切）、`incategory:"Snack bars in Japan"`（スナックの看板と路地）。`snack bar japan` は菓子が、`japan shopping street evening` は香港が混ざるので使わない
 - 語の当たりを目で確かめる方法：API で `iiurlwidth=480` のサムネを取って HTML に並べ、ヘッドレス Chromium でスクリーンショットにする（コンタクトシート）。使える枚数だけでは雰囲気は分からない
-- 日本側をもっと良くするなら Flickr API（無料の鍵が必要）の「New Topographics」系グループプールを CC ライセンスで引く手がある。Unsplash と同じ位置づけの選択肢
+- Flickr を出どころとして実装した（`fetchFlickr`）。`flickr.photos.search` に `text`、`license=1,2,3,4,5,6,7,9,10`、`sort=interestingness-desc`、`extras=url_l,url_h,url_k,owner_name,license`。2048（k）→1600（h）→1024（l）の順であるいちばん大きいサイズを使い、1024 未満と縦位置は捨てる。ページは8まで
+- 語の先頭に `group:<グループID>` と書くとそのグループプールの中だけを探す（`group_id`）。「New Topographics」「Uncommon Places」系のグループ ID は鍵を得てから `flickr.groups.search` で調べて `THEMES[*].flickr` に足す
+- テーマごとに `flickr` の語を持つ。無いテーマは `unsplash` の語で代用（`activeQueries()`）
+- 鍵が無い・断られたときは `halted` を立てて取りに行くのを止める。鍵を入れ直すか出どころを変えると `restartSource()` で解ける。以前は5秒ごとに全語を叩き続けていた
+- 作成環境では Flickr・Unsplash の鍵が無いので、実データでの当たり具合は未確認。モック（API 応答を偽装）で流れだけ確認した
 - 使用回数順（`gsrsort=incoming_links_desc`）は記事に載せやすい記録写真が上に来るので審美性とは無関係。使っていない
 - 語の当たりを数えるには `gsrinfo=totalhits` を付けて API を叩く。連続で叩くとレート制限で空応答が返るので 1〜2 秒あける
 

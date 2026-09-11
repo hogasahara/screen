@@ -134,6 +134,11 @@
       <input type="password" id="unsplashKey" placeholder="Access Key を貼る" autocomplete="off">
       <small><a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a> でアプリを1つ作ると発行されます。鍵はこのページのURLにだけ残ります。</small>
     </div>
+    <label><input type="radio" name="source" value="flickr"> Flickr（無料の鍵が必要、街の写真が厚い）</label>
+    <div class="sub" id="flickrBox" hidden>
+      <input type="password" id="flickrKey" placeholder="API Key を貼る" autocomplete="off">
+      <small><a href="https://www.flickr.com/services/apps/create/apply/" target="_blank" rel="noopener">flickr.com/services/apps/create</a> で非商用のアプリを申請すると発行されます。CC ライセンスの写真だけを、反応の多かった順に取ります。</small>
+    </div>
     <label><input type="radio" name="source" value="local"> 自分のフォルダ</label>
     <div class="sub">
       <button class="file" id="btnPickImages" type="button">写真を選ぶ</button>
@@ -152,7 +157,7 @@
     <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
     <label><input type="checkbox" name="theme" value="america"> アンコモン・プレイス（アメリカ）</label>
     <label><input type="checkbox" name="theme" value="japan"> 何でもない日本の街</label>
-    <small>Wikimedia Commons と Unsplash のときに効きます。</small>
+    <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
   </section>
 
   <section>
@@ -192,32 +197,40 @@
   // Commons は英語の一般語がいちばん当たる。Unsplash は少し詩的でも通じる。
   const THEMES = {
     blue:    { commons: ['blue hour village', 'twilight village lights', 'dusk lake reflection village', 'blue hour lighthouse'],
-               unsplash: ['blue hour village', 'twilight village lights', 'dusk lake reflection'] },
+               unsplash: ['blue hour village', 'twilight village lights', 'dusk lake reflection'],
+               flickr: ['blue hour village', 'twilight village lights', 'dusk lake village', 'blue hour lighthouse'] },
     village: { commons: ['hilltop village provence', 'village tuscany morning', 'alsace village', 'cotswolds village', 'village dolomites valley'],
-               unsplash: ['provence hilltop village', 'tuscany village morning', 'alsace village', 'cotswolds village'] },
+               unsplash: ['provence hilltop village', 'tuscany village morning', 'alsace village', 'cotswolds village'],
+               flickr: ['provence hilltop village', 'tuscany village', 'alsace village', 'cotswolds village', 'dolomites village'] },
     pei:     { commons: ['prince edward island landscape', 'prince edward island lighthouse', 'prince edward island red cliffs', 'lupine field'],
-               unsplash: ['prince edward island', 'red cliffs lighthouse coast', 'lupine field'] },
+               unsplash: ['prince edward island', 'red cliffs lighthouse coast', 'lupine field'],
+               flickr: ['prince edward island', 'prince edward island lighthouse', 'lupins field'] },
     snow:    { commons: ['snow village night lights', 'winter village dusk', 'snowy chalet evening', 'snow church village'],
-               unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'] },
+               unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'],
+               flickr: ['snow village night', 'winter village dusk', 'chalet snow evening'] },
     field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
-               unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'] },
+               unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'],
+               flickr: ['lavender provence', 'rolling hills fog', 'wheat field sunset', 'tuscany cypress'] },
     // 以下2つは「何でもない場所」。Commons の認定カテゴリは絵葉書的な風景に偏るので探さない（plain）
     // アメリカは議会図書館の John Margolies のロードサイド写真だけ。彼自身が作家なので深く読んでも作品のまま（deep）。パブリックドメイン
     america: { plain: true, deep: 400,
                commons: ['"John Margolies" motel', '"John Margolies" gas station', '"John Margolies" restaurant', '"John Margolies" theater',
                          '"John Margolies" store', '"John Margolies" drive-in', '"John Margolies" cabins', '"John Margolies" street',
                          '"John Margolies" texas', '"John Margolies" california', '"John Margolies" florida', '"John Margolies" new york'],
-               unsplash: ['motel sign', 'gas station dusk americana', 'american diner exterior', 'small town main street usa', 'parking lot dusk', 'roadside america'] },
+               unsplash: ['motel sign', 'gas station dusk americana', 'american diner exterior', 'small town main street usa', 'parking lot dusk', 'roadside america'],
+               // Flickr は語の先頭に group:ID を書くとそのグループの中だけを探す
+               flickr: ['motel americana', 'gas station americana', 'roadside america', 'small town main street america', 'diner americana', 'new topographics', 'uncommon places'] },
     // 日本は狙って撮っている人が少ないので、シリーズで上げている撮影者の語（団地、住宅街、福岡の道路、常神の港町）を拾う
     japan:   { plain: true,
                commons: ['danchi', 'japan residential street', '"street view" fukuoka', 'japan level crossing street', 'incategory:"Snack bars in Japan"',
                          'japan port town street', 'utility pole japan street', 'shotengai'],
-               unsplash: ['japan suburb street', 'japan residential alley', 'danchi', 'japan level crossing', 'japan snack bar night', 'japanese street evening quiet'] },
+               unsplash: ['japan suburb street', 'japan residential alley', 'danchi', 'japan level crossing', 'japan snack bar night', 'japanese street evening quiet'],
+               flickr: ['showa japan street', 'japan suburb street', 'tokyo backstreet', 'japan snack bar night', 'danchi', 'japan alley', 'japan countryside station', 'shotengai'] },
   };
 
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
-    source: 'commons', unsplashKey: '', themes: ['blue', 'village'],
+    source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue', 'village'],
     interval: 30, tint: 28, motion: true, caption: true, clock: true,
   };
   function loadState() {
@@ -256,6 +269,7 @@
   let found = [0, 0, 0];    // 段階ごとに見つけた枚数
   let looping = false;
   let fetching = false;
+  let halted = false;       // 鍵の問題で止めている。鍵を入れ直すか出どころを変えるまで取りに行かない
   let localUrls = [];
   let current = 0;          // 表示中のスライド番号
   let timer = null;
@@ -264,12 +278,12 @@
 
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function activeQueries() {
-    const key = state.source === 'unsplash' ? 'unsplash' : 'commons';
     const list = [];
     const themes = state.themes.filter((t) => THEMES[t]);
     for (const t of (themes.length ? themes : ['blue'])) {
-      const tiers = (state.source === 'unsplash' || THEMES[t].plain) ? [2] : [0, 1, 2];
-      for (const q of THEMES[t][key]) list.push({ q, tiers, deep: THEMES[t].deep });
+      const words = THEMES[t][state.source] || THEMES[t].unsplash;
+      const tiers = (state.source !== 'commons' || THEMES[t].plain) ? [2] : [0, 1, 2];
+      for (const q of words) list.push({ q, tiers, deep: THEMES[t].deep });
     }
     return list;
   }
@@ -281,7 +295,7 @@
   function hasMore() { return feeds.some(feedOpen); }
   // 1つの検索語の続きを取ってきて、その語のバッファに足す
   async function fill(feed) {
-    const res = state.source === 'unsplash' ? await fetchUnsplash(feed) : await fetchCommons(feed);
+    const res = await FETCHERS[state.source](feed);
     if (res.next == null) feed.done = true; else feed.offset = res.next;
     for (const p of res.items) {
       if (seen.has(p.id) || (p.dupKey && seen.has(p.dupKey))) continue;
@@ -350,6 +364,41 @@
     return { items, next: page < Math.min(d.total_pages || 0, 5) ? page : null };
   }
 
+  // Flickr：無料の API キーが必要。CC 系のライセンスだけ、コミュニティの反応（interestingness）の順
+  const FLICKR_LICENSES = { 1: 'CC BY-NC-SA', 2: 'CC BY-NC', 3: 'CC BY-NC-ND', 4: 'CC BY', 5: 'CC BY-SA', 6: 'CC BY-ND', 7: 'No known copyright', 9: 'CC0', 10: 'Public Domain' };
+  async function fetchFlickr(feed) {
+    if (!state.flickrKey) throw new Error('nokey');
+    const page = feed.offset + 1;
+    let text = feed.q, group = '';
+    const gm = /^group:(\S+)\s*(.*)$/.exec(text);
+    if (gm) { group = gm[1]; text = gm[2]; }
+    const params = {
+      method: 'flickr.photos.search', api_key: state.flickrKey, format: 'json', nojsoncallback: '1',
+      license: '1,2,3,4,5,6,7,9,10', sort: 'interestingness-desc', content_type: '1', media: 'photos', safe_search: '1',
+      extras: 'url_l,url_h,url_k,owner_name,license', per_page: '50', page: String(page),
+    };
+    if (text) params.text = text;
+    if (group) params.group_id = group;
+    const r = await fetch('https://api.flickr.com/services/rest/?' + new URLSearchParams(params));
+    if (!r.ok) throw new Error('flickr ' + r.status);
+    const d = await r.json();
+    if (d.stat !== 'ok') throw new Error(d.code === 100 ? 'badkey' : 'flickr ' + d.code);
+    const items = [];
+    for (const p of (d.photos && d.photos.photo) || []) {
+      // 2048 → 1600 → 1024 の順で、あるいちばん大きいもの
+      const pick = ['k', 'h', 'l'].map((z) => ({ url: p['url_' + z], w: +p['width_' + z], h: +p['height_' + z] })).find((x) => x.url);
+      if (!pick || pick.w < 1024 || pick.w / pick.h < 1.15) continue;
+      items.push({
+        id: 'f' + p.id, tier: 2, url: pick.url,
+        title: (p.title || '').slice(0, 80),
+        credit: [p.ownername, FLICKR_LICENSES[p.license] || '', 'Flickr'].filter(Boolean).join('　'),
+      });
+    }
+    const pages = +((d.photos && d.photos.pages) || 0);
+    return { items, next: page < Math.min(pages, 8) ? page : null };
+  }
+  const FETCHERS = { commons: fetchCommons, unsplash: fetchUnsplash, flickr: fetchFlickr };
+
   function updateStatus() {
     if (state.source === 'local') return;
     const total = found[0] + found[1] + found[2];
@@ -365,7 +414,7 @@
   }
 
   async function refill() {
-    if (fetching) return;
+    if (fetching || halted) return;
     if (state.source === 'local') return;
     fetching = true;
     const gen = generation;
@@ -389,8 +438,9 @@
       updateStatus();
     } catch (e) {
       if (gen !== generation) return;
-      if (e.message === 'nokey') status.textContent = 'Unsplash の Access Key を入れてください。';
-      else if (e.message === 'badkey') status.textContent = 'この鍵では Unsplash に断られました。';
+      const svc = state.source === 'flickr' ? 'Flickr' : 'Unsplash';
+      if (e.message === 'nokey') { halted = true; status.textContent = `${svc} の鍵を入れてください。`; }
+      else if (e.message === 'badkey') { halted = true; status.textContent = `この鍵では ${svc} に断られました。`; }
       else status.textContent = '取りに行けませんでした。通信を確かめてもう一度。';
       note.textContent = status.textContent;
     } finally {
@@ -455,7 +505,7 @@
       note.textContent = state.source === 'local' ? '設定から写真を選んでください' : (status.textContent || '写真を集めています');
       note.classList.remove('hidden');
       advancing = false;
-      timer = setTimeout(advance, 5000);
+      if (!halted) timer = setTimeout(advance, 8000);   // 鍵の問題なら、鍵を入れ直すまで待つ
       return;
     }
     note.classList.add('hidden');
@@ -477,7 +527,7 @@
 
   function restartSource() {
     generation++;
-    pool = []; history = new Map(); recent = []; seen = new Set(); found = [0, 0, 0]; looping = false; fetching = false;
+    pool = []; history = new Map(); recent = []; seen = new Set(); found = [0, 0, 0]; looping = false; fetching = false; halted = false;
     buildFeeds();
     status.textContent = '';
     note.textContent = '写真を集めています';
@@ -536,10 +586,12 @@
     $('#intervalVal').textContent = state.interval + '秒';
     $('#tintVal').textContent = state.tint;
     $('#unsplashBox').hidden = state.source !== 'unsplash';
+    $('#flickrBox').hidden = state.source !== 'flickr';
   }
   function syncForm() {
     document.querySelector(`input[name=source][value=${state.source}]`).checked = true;
     $('#unsplashKey').value = state.unsplashKey;
+    $('#flickrKey').value = state.flickrKey;
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
     $('#interval').value = state.interval; $('#tint').value = state.tint;
     $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock;
@@ -548,9 +600,11 @@
 
   document.querySelectorAll('input[name=source]').forEach((r) => r.addEventListener('change', () => {
     state.source = r.value; applyView(); saveState();
-    if (state.source !== 'unsplash' || state.unsplashKey) restartSource();
+    const keyName = { unsplash: 'unsplashKey', flickr: 'flickrKey' }[state.source];
+    if (!keyName || state[keyName]) restartSource();
   }));
   $('#unsplashKey').addEventListener('change', () => { state.unsplashKey = $('#unsplashKey').value.trim(); saveState(); if (state.source === 'unsplash') restartSource(); });
+  $('#flickrKey').addEventListener('change', () => { state.flickrKey = $('#flickrKey').value.trim(); saveState(); if (state.source === 'flickr') restartSource(); });
   document.querySelectorAll('input[name=theme]').forEach((c) => c.addEventListener('change', () => {
     state.themes = [...document.querySelectorAll('input[name=theme]:checked')].map((x) => x.value);
     saveState(); if (state.source !== 'local') restartSource();
