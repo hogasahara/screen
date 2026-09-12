@@ -45,7 +45,9 @@
   /* 写真集のキャプションと時計 */
   #caption { position: fixed; left: 4.5vw; bottom: 5.5vh; max-width: 46vw; line-height: 1.7; text-shadow: 0 1px 14px rgba(0,0,0,0.55); transition: opacity 1.5s; }
   #cap-title { font-size: clamp(14px, 1.35vw, 20px); letter-spacing: 0.06em; }
+  #cap-title .fav { color: var(--amber); margin-right: 0.4em; }
   #cap-credit { font-size: clamp(11px, 0.95vw, 14px); letter-spacing: 0.08em; color: var(--paper-dim); margin-top: 0.15em; }
+  #cap-debug { font-size: clamp(10px, 0.85vw, 12px); letter-spacing: 0.06em; color: var(--mist); margin-top: 0.5em; font-family: ui-monospace, Menlo, Consolas, monospace; }
   #clock { position: fixed; right: 4.5vw; bottom: 5vh; text-align: right; text-shadow: 0 1px 14px rgba(0,0,0,0.55); transition: opacity 1.5s; }
   #clock .time { font-size: clamp(34px, 5.2vw, 84px); font-weight: 300; letter-spacing: 0.05em; line-height: 1; }
   #clock .date { font-size: clamp(11px, 1vw, 15px); letter-spacing: 0.14em; color: var(--paper-dim); margin-top: 0.6em; }
@@ -56,6 +58,7 @@
   body.awake #hud { opacity: 1; pointer-events: auto; }
   #hud button { font: inherit; font-size: 13px; letter-spacing: 0.1em; color: var(--paper); background: rgba(10, 18, 36, 0.55); border: 1px solid rgba(239,233,220,0.25); padding: 8px 14px; cursor: pointer; backdrop-filter: blur(6px); }
   #hud button:hover, #hud button:focus-visible { border-color: var(--amber); outline: none; }
+  #hud button.on { color: var(--amber); border-color: var(--amber); }
 
   #note { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); text-align: center; font-size: clamp(14px, 1.4vw, 18px); letter-spacing: 0.1em; line-height: 2; color: var(--paper-dim); max-width: 70vw; transition: opacity 1s; pointer-events: none; }
 
@@ -76,6 +79,8 @@
   #panel .val { color: var(--amber); font-variant-numeric: tabular-nums; }
   #panel button.file { font: inherit; font-size: 13px; color: var(--paper); background: transparent; border: 1px solid rgba(239,233,220,0.3); padding: 7px 14px; cursor: pointer; margin-top: 6px; letter-spacing: 0.06em; }
   #panel button.file:hover { border-color: var(--amber); }
+  #panel button.file:disabled { opacity: 0.4; cursor: default; }
+  #panel .btns { display: flex; flex-wrap: wrap; gap: 6px; }
   #panel small { display: block; color: var(--mist); font-size: 12px; line-height: 1.7; margin-top: 6px; }
   #panel a { color: var(--amber); text-decoration: none; border-bottom: 1px solid rgba(217,165,92,0.4); }
   #panel .sub { margin-left: 25px; }
@@ -84,9 +89,27 @@
   #panel .close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--mist); font: inherit; font-size: 22px; cursor: pointer; }
   #panel .status { color: var(--mist); font-size: 12px; margin-top: 8px; min-height: 1.6em; }
 
+  /* 検索語の当たりを見る */
+  #sheet { position: fixed; inset: 0; background: rgba(6, 10, 22, 0.96); overflow-y: auto; padding: 28px 32px 48px; display: none; z-index: 5; }
+  #sheet.open { display: block; }
+  #sheet h1 { font-size: 16px; font-weight: 400; letter-spacing: 0.18em; margin: 0 0 6px; }
+  #sheet .lead { color: var(--mist); font-size: 12px; margin: 0 0 18px; }
+  #sheet .close { position: fixed; top: 16px; right: 22px; background: rgba(10,18,36,0.7); border: 1px solid rgba(239,233,220,0.25); color: var(--paper); font: inherit; font-size: 20px; width: 40px; height: 40px; cursor: pointer; }
+  #sheet .term { margin-bottom: 18px; }
+  #sheet .term h2 { font-size: 13px; font-weight: 400; letter-spacing: 0.08em; margin: 0 0 6px; color: var(--paper); }
+  #sheet .term h2 .meta { color: var(--mist); margin-left: 10px; font-size: 12px; }
+  #sheet .term h2 .q { color: var(--amber); font-family: ui-monospace, Menlo, Consolas, monospace; }
+  #sheet .cells { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  #sheet .cell { flex: 0 0 auto; width: 200px; cursor: pointer; position: relative; }
+  #sheet .cell img { width: 200px; height: 133px; object-fit: cover; display: block; background: #1a2438; border: 1px solid transparent; }
+  #sheet .cell.fav img { border-color: var(--amber); }
+  #sheet .cell .mark { position: absolute; top: 4px; right: 6px; color: var(--amber); text-shadow: 0 0 6px #000; }
+  #sheet .cell small { display: block; font-size: 10px; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
   @media (max-width: 640px) {
     #caption { max-width: 88vw; bottom: 16vh; }
     #clock { right: auto; left: 4.5vw; text-align: left; bottom: 5vh; }
+    #sheet { padding: 20px 16px 40px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .slide { transition-duration: 1.5s; }
@@ -109,6 +132,7 @@
 <div id="caption">
   <div id="cap-title"></div>
   <div id="cap-credit"></div>
+  <div id="cap-debug" hidden></div>
 </div>
 <div id="clock">
   <div class="time">--:--</div>
@@ -116,6 +140,7 @@
 </div>
 
 <div id="hud">
+  <button id="btnFav" type="button">お気に入り</button>
   <button id="btnNext" type="button">次の一枚</button>
   <button id="btnFull" type="button">全画面</button>
   <button id="btnSettings" type="button">設定</button>
@@ -132,13 +157,14 @@
     <label><input type="radio" name="source" value="unsplash"> Unsplash（無料の鍵が必要、写真の質が高い）</label>
     <div class="sub" id="unsplashBox" hidden>
       <input type="password" id="unsplashKey" placeholder="Access Key を貼る" autocomplete="off">
-      <small><a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a> でアプリを1つ作ると発行されます。鍵はこのページのURLにだけ残ります。</small>
+      <small><a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a> でアプリを1つ作ると発行されます。鍵はこのページのURLにだけ残ります。開発モードは1時間に50回まで。テーマを切り替えても取ってきた分は捨てないので、眺めているだけなら足ります。</small>
     </div>
-    <label><input type="radio" name="source" value="flickr"> Flickr（無料の鍵が必要、街の写真が厚い）</label>
+    <label><input type="radio" name="source" value="flickr"> Flickr（鍵は Pro アカウント限定）</label>
     <div class="sub" id="flickrBox" hidden>
       <input type="password" id="flickrKey" placeholder="API Key を貼る" autocomplete="off">
-      <small><a href="https://www.flickr.com/services/apps/create/apply/" target="_blank" rel="noopener">flickr.com/services/apps/create</a> で非商用のアプリを申請すると発行されます。CC ライセンスの写真だけを、反応の多かった順に取ります。</small>
+      <small>Flickr の API キーはいま Pro アカウントにしか発行されません。持っている場合だけ。CC ライセンスの写真を、反応の多かった順に取ります。</small>
     </div>
+    <label><input type="radio" name="source" value="favorites"> お気に入りだけ</label>
     <label><input type="radio" name="source" value="local"> 自分のフォルダ</label>
     <div class="sub">
       <button class="file" id="btnPickImages" type="button">写真を選ぶ</button>
@@ -151,13 +177,14 @@
   <section>
     <h2>テーマ</h2>
     <label><input type="checkbox" name="theme" value="blue" checked> ブルーモーメント</label>
-    <label><input type="checkbox" name="theme" value="village" checked> ヨーロッパの村</label>
     <label><input type="checkbox" name="theme" value="pei"> プリンス・エドワード島</label>
     <label><input type="checkbox" name="theme" value="snow"> 雪と灯り</label>
     <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
     <label><input type="checkbox" name="theme" value="america"> アンコモン・プレイス（アメリカ）</label>
-    <label><input type="checkbox" name="theme" value="japan"> 何でもない日本の街</label>
+    <label><input type="checkbox" name="theme" value="japan"> 日本の街</label>
     <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
+    <button class="file" id="btnSheet" type="button">検索語の当たりを見る</button>
+    <small>いま選んでいる出どころとテーマの語ごとに、取れた写真を一覧にします。Unsplash では語の数だけ要求を使います。</small>
   </section>
 
   <section>
@@ -165,10 +192,24 @@
     <div class="row"><span>切り替える間隔</span><span class="val" id="intervalVal">30秒</span></div>
     <input type="range" id="interval" min="8" max="120" step="1" value="30">
     <div class="row" style="margin-top:10px"><span>青の深さ</span><span class="val" id="tintVal">28</span></div>
-    <input type="range" id="tint" min="0" max="60" step="1" value="28">
+    <input type="range" id="tintRange" min="0" max="60" step="1" value="28">
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
+    <label><input type="checkbox" id="showDebug"> 検索語も出す（調整用）</label>
+  </section>
+
+  <section>
+    <h2>お気に入り</h2>
+    <div class="status" id="favCount" style="margin:0 0 6px"></div>
+    <div class="btns">
+      <button class="file" id="btnFavExport" type="button">JSON を書き出す</button>
+      <button class="file" id="btnFavCopy" type="button">コピー</button>
+      <button class="file" id="btnFavImport" type="button">読み込む</button>
+      <button class="file" id="btnFavClear" type="button">全部消す</button>
+      <input type="file" id="fileFavs" accept="application/json,.json" hidden>
+    </div>
+    <small>眺めている一枚を <kbd>L</kbd> か「お気に入り」で登録。この端末の中に残ります。書き出した JSON には写真のページ、撮影者、出どころ、当たった検索語が入るので、共有や語の調整に使えます。</small>
   </section>
 
   <section>
@@ -184,54 +225,75 @@
     <div class="keys">
       <div><kbd>Space</kbd>止める・進める</div>
       <div><kbd>→</kbd>次の一枚</div>
+      <div><kbd>L</kbd>お気に入りに入れる・外す</div>
       <div><kbd>F</kbd>全画面</div>
       <div><kbd>C</kbd>キャプション</div>
+      <div><kbd>D</kbd>検索語を出す</div>
       <div><kbd>S</kbd>この設定</div>
     </div>
   </section>
 </div>
 
+<div id="sheet" aria-label="検索語の当たり">
+  <button class="close" id="btnSheetClose" type="button" aria-label="閉じる">×</button>
+  <h1>検索語の当たり</h1>
+  <p class="lead" id="sheetLead"></p>
+  <div id="sheetBody"></div>
+</div>
+
 <script>
 (() => {
   // ---------- テーマごとの検索語 ----------
-  // Commons は英語の一般語がいちばん当たる。Unsplash は少し詩的でも通じる。
+  // 語は文字列か {q, w}。w は出す比率の重み（省略で 1）。差し込みの被写体は 0.2〜0.4 に落とす。
+  // Commons は名詞と場所名しか効かない（AND 検索、-語 で除外できる）。Unsplash はタグと説明文に当たるので、
+  // 光と時間（dusk, blue hour, overcast）、距離（street, exterior, distant）、色調（film photography）の語が効く。
   const THEMES = {
-    blue:    { commons: ['blue hour village', 'twilight village lights', 'dusk lake reflection village', 'blue hour lighthouse'],
-               unsplash: ['blue hour village', 'twilight village lights', 'dusk lake reflection'],
-               flickr: ['blue hour village', 'twilight village lights', 'dusk lake village', 'blue hour lighthouse'] },
-    village: { commons: ['hilltop village provence', 'village tuscany morning', 'alsace village', 'cotswolds village', 'village dolomites valley'],
-               unsplash: ['provence hilltop village', 'tuscany village morning', 'alsace village', 'cotswolds village'],
-               flickr: ['provence hilltop village', 'tuscany village', 'alsace village', 'cotswolds village', 'dolomites village'] },
-    pei:     { commons: ['prince edward island landscape', 'prince edward island lighthouse', 'prince edward island red cliffs', 'lupine field'],
-               unsplash: ['prince edward island', 'red cliffs lighthouse coast', 'lupine field'],
-               flickr: ['prince edward island', 'prince edward island lighthouse', 'lupins field'] },
-    snow:    { commons: ['snow village night lights', 'winter village dusk', 'snowy chalet evening', 'snow church village'],
-               unsplash: ['snow village night lights', 'winter village dusk', 'snowy chalet evening'],
-               flickr: ['snow village night', 'winter village dusk', 'chalet snow evening'] },
-    field:   { commons: ['lavender field provence', 'rolling hills fog morning', 'wheat field sunset', 'tuscany cypress road'],
-               unsplash: ['lavender field provence', 'rolling hills morning fog', 'wheat field sunset'],
-               flickr: ['lavender provence', 'rolling hills fog', 'wheat field sunset', 'tuscany cypress'] },
-    // 以下2つは「何でもない場所」。Commons の認定カテゴリは絵葉書的な風景に偏るので探さない（plain）
-    // アメリカは議会図書館の John Margolies のロードサイド写真だけ。彼自身が作家なので深く読んでも作品のまま（deep）。パブリックドメイン
-    america: { plain: true, deep: 400,
-               commons: ['"John Margolies" motel', '"John Margolies" gas station', '"John Margolies" restaurant', '"John Margolies" theater',
-                         '"John Margolies" store', '"John Margolies" drive-in', '"John Margolies" cabins', '"John Margolies" street',
-                         '"John Margolies" texas', '"John Margolies" california', '"John Margolies" florida', '"John Margolies" new york'],
-               unsplash: ['motel sign', 'gas station dusk americana', 'american diner exterior', 'small town main street usa', 'parking lot dusk', 'roadside america'],
-               // Flickr は語の先頭に group:ID を書くとそのグループの中だけを探す
-               flickr: ['motel americana', 'gas station americana', 'roadside america', 'small town main street america', 'diner americana', 'new topographics', 'uncommon places'] },
-    // 日本は狙って撮っている人が少ないので、シリーズで上げている撮影者の語（団地、住宅街、福岡の道路、常神の港町）を拾う
-    japan:   { plain: true,
-               commons: ['danchi', 'japan residential street', '"street view" fukuoka', 'japan level crossing street', 'incategory:"Snack bars in Japan"',
-                         'japan port town street', 'utility pole japan street', 'shotengai'],
-               unsplash: ['japan suburb street', 'japan residential alley', 'danchi', 'japan level crossing', 'japan snack bar night', 'japanese street evening quiet'],
-               flickr: ['showa japan street', 'japan suburb street', 'tokyo backstreet', 'japan snack bar night', 'danchi', 'japan alley', 'japan countryside station', 'shotengai'] },
+    blue: { name: 'ブルーモーメント',
+      // 色あせた色合い、人の営みの痕跡、近景から遠景まで
+      commons: ['blue hour village', 'dusk town lights', 'twilight street', 'evening harbour lights', { q: 'blue hour lighthouse', w: 0.4 }],
+      unsplash: ['blue hour town', 'dusk village lights', 'twilight street lamps', 'blue hour harbor', 'dusk suburb houses', 'blue hour film photography',
+                 { q: 'lit window evening house', w: 0.3 }, { q: 'evening kitchen window', w: 0.3 }] },
+    pei: { name: 'プリンス・エドワード島',
+      // 吉村和敏の島。自然が豊かで色彩も豊かな家や集落とその周辺。季節はすべて
+      commons: ['prince edward island landscape', 'prince edward island lighthouse', 'prince edward island red cliffs', 'prince edward island farm',
+                { q: 'prince edward island autumn', w: 0.6 }, { q: 'prince edward island winter', w: 0.6 }, { q: 'lupine field', w: 0.4 }],
+      unsplash: ['prince edward island', 'red dirt road farm', 'farmhouse rolling green hills', 'white church countryside', 'lighthouse red white coast',
+                 'red cliffs green field sea', 'maritime canada village', { q: 'farmhouse autumn maple', w: 0.5 }, { q: 'snow farmhouse coast', w: 0.5 },
+                 { q: 'lupine field house', w: 0.3 }, { q: 'wooden fence pasture', w: 0.3 }] },
+    snow: { name: '雪と灯り',
+      // 彩度の低い風景、人の営みが雪に包まれている、遠景が主体
+      commons: ['snow village night lights', 'winter village dusk', 'snow church village', 'snow farm evening'],
+      unsplash: ['snow village dusk', 'winter town lights distant', 'snowy village evening', 'snow farmhouse evening', 'winter village blue hour',
+                 'snow village film photography', { q: 'cabin snow window light', w: 0.3 }] },
+    field: { name: '田園と空',
+      // 作物と共にある人の営み、遠景が主体
+      commons: ['farmland village', 'wheat field village', 'vineyard village', 'rice terraces village', { q: 'lavender field provence', w: 0.4 }],
+      unsplash: ['farmland village', 'wheat field farmhouse', 'rice paddies village', 'vineyard village morning', 'rolling farmland clouds', 'hay bales farm',
+                 { q: 'orchard farmhouse', w: 0.4 }, { q: 'lavender field provence', w: 0.3 }] },
+    america: { name: 'アンコモン・プレイス', plain: true, deep: 400, oneAuthorOk: true,
+      // Stephen Shore『Uncommon Places』。交差点、駐車場、モーテル、ガソリンスタンド、二車線道路と電線と看板、住宅街、
+      // 平屋の商業建築。日中の平らな光、褪せた色、中景〜遠景、水平、正面。人はいないか小さい
+      // Commons は議会図書館の John Margolies のロードサイド写真だけ。彼自身が作家なので深く読んでも作品のまま（deep）
+      commons: ['"John Margolies" motel', '"John Margolies" gas station', '"John Margolies" restaurant', '"John Margolies" theater',
+                '"John Margolies" store', '"John Margolies" drive-in', '"John Margolies" cabins', '"John Margolies" street',
+                '"John Margolies" texas', '"John Margolies" california', '"John Margolies" florida', '"John Margolies" new york'],
+      unsplash: ['intersection traffic light small town', 'empty parking lot storefront', 'motel exterior parking lot', 'two lane road power lines billboard',
+                 'suburban street american houses', 'main street small town storefront', 'gas station daytime film', 'americana film photography street',
+                 'new topographics', { q: 'motel room bed window', w: 0.3 }, { q: 'movie theater marquee', w: 0.3 }, { q: 'diner table pancakes', w: 0.2 }] },
+    japan: { name: '日本の街', plain: true,
+      // 都会以外の日本の家並みや店、色あせた色合い、近景から遠景まで、昼も夕方も
+      commons: ['japan town street -tokyo -osaka -festival', 'rural japan town -festival', 'japan port town street', 'japan residential street',
+                { q: 'danchi', w: 0.5 }, { q: 'incategory:"Snack bars in Japan"', w: 0.3 }, { q: 'japan level crossing street', w: 0.2 }],
+      unsplash: ['rural japan town street', 'japan countryside houses', 'japanese small town shop', 'japan village houses', 'japan seaside town',
+                 'japan mountain town', 'japan shop front', 'japan town street evening', 'japan town film photography',
+                 { q: 'japan vending machine street', w: 0.3 }, { q: 'japan snack bar night', w: 0.3 }, { q: 'japan level crossing', w: 0.2 }] },
   };
+  const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
-    source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue', 'village'],
-    interval: 30, tint: 28, motion: true, caption: true, clock: true,
+    source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
+    interval: 30, tint: 28, motion: true, caption: true, clock: true, debug: false,
   };
   function loadState() {
     try {
@@ -244,64 +306,126 @@
     try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(JSON.stringify(state))))); } catch (e) {}
   }
   loadState();
+  if (!SOURCE_NAMES[state.source]) state.source = 'commons';
 
   // ---------- DOM ----------
   const $ = (s) => document.querySelector(s);
   const slides = [$('#slideA'), $('#slideB')];
   const tintEl = $('#tint'), note = $('#note'), status = $('#status');
-  const capTitle = $('#cap-title'), capCredit = $('#cap-credit');
-  const captionEl = $('#caption'), clockEl = $('#clock'), panel = $('#panel');
+  const capTitle = $('#cap-title'), capCredit = $('#cap-credit'), capDebug = $('#cap-debug');
+  const captionEl = $('#caption'), clockEl = $('#clock'), panel = $('#panel'), sheet = $('#sheet');
   const audio = $('#audio');
+
+  // ---------- お気に入り（この端末の中に残す） ----------
+  const FAV_KEY = 'aonojikan.favorites';
+  let favorites = [];
+  try { favorites = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); if (!Array.isArray(favorites)) favorites = []; } catch (e) {}
+  function saveFavs() { try { localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); } catch (e) {} }
+  function isFav(id) { return favorites.some((f) => f.id === id); }
+  function favRecord(p) {
+    return { id: p.id, source: p.source, theme: p.theme || '', query: p.query || '', tier: p.tierName || '', url: p.url, thumb: p.thumb || '',
+      page: p.page || '', title: p.title || '', credit: p.credit || '', author: p.author || '', savedAt: new Date().toISOString() };
+  }
+  function toggleFav(p) {
+    if (!p || p.source === 'local') return false;
+    const i = favorites.findIndex((f) => f.id === p.id);
+    if (i >= 0) favorites.splice(i, 1); else favorites.push(favRecord(p));
+    saveFavs(); updateFavUI();
+    return i < 0;
+  }
+  function updateFavUI() {
+    $('#favCount').textContent = favorites.length ? `${favorites.length}枚` : 'まだありません';
+    $('#btnFavExport').disabled = $('#btnFavCopy').disabled = $('#btnFavClear').disabled = !favorites.length;
+    const cur = currentPhoto && isFav(currentPhoto.id);
+    $('#btnFav').classList.toggle('on', !!cur);
+    $('#btnFav').textContent = cur ? 'お気に入り ♥' : 'お気に入り';
+    if (currentPhoto) renderCaption(currentPhoto);
+  }
+  function favJson() { return JSON.stringify({ app: '青の時間', exportedAt: new Date().toISOString(), count: favorites.length, photos: favorites }, null, 2); }
 
   // ---------- 写真の在庫 ----------
   // Commons は 秀逸な画像 → 品質画像 → 通常検索 の順に取りに行く。
-  // 全部見終わったら、見せた写真をシャッフルして繰り返す。
+  // 語ごとに取ってきた分をバッファに持ち、重みに応じて少しずつ取って混ぜる。全部見終わったら、見せた写真をシャッフルして繰り返す。
   const COMMONS_TIERS = [
     { name: '秀逸な画像', filter: 'incategory:"Featured pictures on Wikimedia Commons"', maxOffset: 200 },
     { name: '品質画像',   filter: 'incategory:"Quality images"',                        maxOffset: 400 },
     { name: '',           filter: '',                                                    maxOffset: 80 },   // 関連度順は後ろほど外れる
   ];
-  let pool = [];            // これから見せる {url, title, credit, id, tier}
+  // 同じ写真家の連作や同じ場所は、上限を超えた分を後ろに回す（捨てはしない。その語のほかの写真が出尽くしてから出る）
+  const MAX_PER_AUTHOR_FEED = 3;   // 同じ写真家は1つの語につきここまで
+  const MAX_PER_AUTHOR = 12;       // 同じ写真家は全体でここまで
+  const MAX_PER_PLACE_FEED = 2;    // 同じ場所名は1つの語につきここまで
+  let pool = [];            // これから見せる写真
   let history = new Map();  // 見せたことのある写真（id → photo）。繰り返しの元
   let recent = [];          // 直近に見せた id。繰り返しの頭で同じ写真が続かないように
-  let seen = new Set();     // 取ってきた写真の id（同じ写真が別の語でも出るので）
-  let feeds = [];           // 取りに行く先 {q, tier, offset, done, buffer}。buffer は取ってきてまだ在庫に出していない写真
+  let seen = new Set();     // 在庫に入れた写真の id（同じ写真が別の語でも出るので）
+  let feeds = [];           // 取りに行く先 {q, w, tier, theme, offset, done, buffer, cache}
+  const feedCache = new Map();  // 出どころ×段階×語 → {offset, done, items}。テーマを切り替えても取ってきた分は捨てない
+  let authorTotal = new Map();
   let found = [0, 0, 0];    // 段階ごとに見つけた枚数
+  let deferred = 0;         // 同じ写真家・場所の上限で後ろに回した枚数
   let looping = false;
   let fetching = false;
   let halted = false;       // 鍵の問題で止めている。鍵を入れ直すか出どころを変えるまで取りに行かない
   let localUrls = [];
   let current = 0;          // 表示中のスライド番号
+  let currentPhoto = null;
   let timer = null;
   let paused = false;
   let generation = 0;       // 出どころを変えたら古い取得結果を捨てる
 
   function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function isApiSource(s) { return s === 'commons' || s === 'unsplash' || s === 'flickr'; }
   function activeQueries() {
     const list = [];
     const themes = state.themes.filter((t) => THEMES[t]);
     for (const t of (themes.length ? themes : ['blue'])) {
-      const words = THEMES[t][state.source] || THEMES[t].unsplash;
-      const tiers = (state.source !== 'commons' || THEMES[t].plain) ? [2] : [0, 1, 2];
-      for (const q of words) list.push({ q, tiers, deep: THEMES[t].deep });
+      const th = THEMES[t];
+      const words = th[state.source] || th.unsplash;
+      const tiers = (state.source !== 'commons' || th.plain) ? [2] : [0, 1, 2];
+      for (const w of words) {
+        const q = typeof w === 'string' ? w : w.q;
+        list.push({ q, w: (typeof w === 'string' ? 1 : (w.w || 1)), tiers, theme: t, deep: th.deep, oneAuthorOk: !!th.oneAuthorOk });
+      }
     }
     return list;
   }
   function buildFeeds() {
     feeds = [];
-    for (const tier of [0, 1, 2]) for (const { q, tiers, deep } of activeQueries()) if (tiers.includes(tier)) feeds.push({ q, tier, deep, offset: 0, done: false, buffer: [] });
+    for (const tier of [0, 1, 2]) for (const spec of activeQueries()) {
+      if (!spec.tiers.includes(tier)) continue;
+      const key = `${state.source}|${tier}|${spec.q}`;
+      let cache = feedCache.get(key);
+      if (!cache) { cache = { offset: 0, done: false, items: [] }; feedCache.set(key, cache); }
+      const feed = { ...spec, tier, cache, buffer: [], overflow: [], authors: new Map(), places: new Map() };
+      for (const p of cache.items) admit(feed, p);   // 取ってきてあった分をそのまま在庫候補に
+      feeds.push(feed);
+    }
   }
-  function feedOpen(f) { return !f.done || f.buffer.length > 0; }
+  function feedOpen(f) { return !f.cache.done || f.buffer.length > 0 || f.overflow.length > 0; }
   function hasMore() { return feeds.some(feedOpen); }
+  // 1枚を語のバッファに入れる。重複はここで除き、同じ写真家・場所の偏りは後ろ（overflow）に回す
+  function admit(feed, p) {
+    if (seen.has(p.id) || (p.dupKey && seen.has(p.dupKey))) return false;
+    seen.add(p.id); if (p.dupKey) seen.add(p.dupKey);
+    found[p.tier]++;
+    const photo = { ...p, query: feed.q, theme: feed.theme, source: state.source };
+    let over = false;
+    if (!feed.oneAuthorOk && p.author) {
+      over = (feed.authors.get(p.author) || 0) >= MAX_PER_AUTHOR_FEED || (authorTotal.get(p.author) || 0) >= MAX_PER_AUTHOR;
+    }
+    if (!over && p.place) over = (feed.places.get(p.place) || 0) >= MAX_PER_PLACE_FEED;
+    if (over) { deferred++; feed.overflow.push(photo); return true; }
+    if (p.author) { feed.authors.set(p.author, (feed.authors.get(p.author) || 0) + 1); authorTotal.set(p.author, (authorTotal.get(p.author) || 0) + 1); }
+    if (p.place) feed.places.set(p.place, (feed.places.get(p.place) || 0) + 1);
+    feed.buffer.push(photo);
+    return true;
+  }
   // 1つの検索語の続きを取ってきて、その語のバッファに足す
   async function fill(feed) {
-    const res = await FETCHERS[state.source](feed);
-    if (res.next == null) feed.done = true; else feed.offset = res.next;
-    for (const p of res.items) {
-      if (seen.has(p.id) || (p.dupKey && seen.has(p.dupKey))) continue;
-      seen.add(p.id); if (p.dupKey) seen.add(p.dupKey);
-      found[p.tier]++; feed.buffer.push(p);
-    }
+    const res = await FETCHERS[state.source](feed, feed.cache.offset);
+    if (res.next == null) feed.cache.done = true; else feed.cache.offset = res.next;
+    for (const p of res.items) { feed.cache.items.push(p); admit(feed, p); }
   }
   function stripHtml(s) { const d = document.createElement('div'); d.innerHTML = s || ''; return (d.textContent || '').trim(); }
   function prettyName(file) {
@@ -309,11 +433,11 @@
       .replace(/\s*LCCN\s*\d+.*$/i, '').replace(/,?\s*by John Margolies.*$/i, '').replace(/\s*[-–]\s*\d{4,}.*$/, '').trim();
   }
 
-  async function fetchCommons(feed) {
+  async function fetchCommons(feed, offset) {
     const tier = COMMONS_TIERS[feed.tier];
     const url = 'https://commons.wikimedia.org/w/api.php?' + new URLSearchParams({
       action: 'query', generator: 'search', gsrsearch: `${feed.q} filetype:bitmap ${tier.filter}`.trim(),
-      gsrnamespace: '6', gsrlimit: '40', gsroffset: String(feed.offset),
+      gsrnamespace: '6', gsrlimit: '40', gsroffset: String(offset),
       prop: 'imageinfo', iiprop: 'url|size|extmetadata', iiurlwidth: '2400', format: 'json', origin: '*',
     });
     const r = await fetch(url);
@@ -330,11 +454,15 @@
       const lic = stripHtml(m.LicenseShortName && m.LicenseShortName.value);
       const objName = stripHtml(m.ObjectName && m.ObjectName.value);
       const title = (objName && objName.length < 80 ? objName : prettyName(p.title));
+      const big = ii.thumburl || ii.url;
       items.push({
         id: 'c' + p.pageid,
         dupKey: title.length > 12 ? 't:' + title.toLowerCase() : null,   // 同じ写真が jpg と tif で二重に入っていることがある
-        tier: feed.tier,
-        url: ii.thumburl || ii.url,
+        tier: feed.tier, tierName: tier.name,
+        url: big,
+        thumb: big.replace(/\/2400px-/, '/640px-'),
+        page: 'https://commons.wikimedia.org/w/index.php?curid=' + p.pageid,
+        author: artist ? artist.slice(0, 60) : '',
         title,
         credit: [tier.name, artist, lic, 'Wikimedia Commons'].filter(Boolean).join('　'),
       });
@@ -344,9 +472,9 @@
     return { items, next: (nextOffset != null && nextOffset < maxOffset) ? nextOffset : null };
   }
 
-  async function fetchUnsplash(feed) {
+  async function fetchUnsplash(feed, offset) {
     if (!state.unsplashKey) throw new Error('nokey');
-    const page = feed.offset + 1;
+    const page = offset + 1;
     const url = 'https://api.unsplash.com/search/photos?' + new URLSearchParams({
       query: feed.q, orientation: 'landscape', per_page: '30', content_filter: 'high', page: String(page),
     });
@@ -356,26 +484,30 @@
     const d = await r.json();
     const items = (d.results || []).map((p) => ({
       id: 'u' + p.id,
-      tier: 2,
+      tier: 2, tierName: '',
       url: p.urls.raw + '&w=2400&q=82&fm=jpg&fit=max',
+      thumb: p.urls.raw + '&w=480&q=60&fm=jpg&fit=max',
+      page: (p.links && p.links.html) || '',
+      author: (p.user && (p.user.username || p.user.name)) || '',
+      place: (p.location && p.location.name) || '',
       title: (p.location && p.location.name) || p.description || p.alt_description || '',
       credit: ((p.user && p.user.name) || '') + '　Unsplash',
     }));
     return { items, next: page < Math.min(d.total_pages || 0, 5) ? page : null };
   }
 
-  // Flickr：無料の API キーが必要。CC 系のライセンスだけ、コミュニティの反応（interestingness）の順
+  // Flickr：API キーは Pro アカウント限定。CC 系のライセンスだけ、コミュニティの反応（interestingness）の順
   const FLICKR_LICENSES = { 1: 'CC BY-NC-SA', 2: 'CC BY-NC', 3: 'CC BY-NC-ND', 4: 'CC BY', 5: 'CC BY-SA', 6: 'CC BY-ND', 7: 'No known copyright', 9: 'CC0', 10: 'Public Domain' };
-  async function fetchFlickr(feed) {
+  async function fetchFlickr(feed, offset) {
     if (!state.flickrKey) throw new Error('nokey');
-    const page = feed.offset + 1;
+    const page = offset + 1;
     let text = feed.q, group = '';
-    const gm = /^group:(\S+)\s*(.*)$/.exec(text);
+    const gm = /^group:(\S+)\s*(.*)$/.exec(text);   // 先頭に group:ID があればそのグループの中だけ
     if (gm) { group = gm[1]; text = gm[2]; }
     const params = {
       method: 'flickr.photos.search', api_key: state.flickrKey, format: 'json', nojsoncallback: '1',
       license: '1,2,3,4,5,6,7,9,10', sort: 'interestingness-desc', content_type: '1', media: 'photos', safe_search: '1',
-      extras: 'url_l,url_h,url_k,owner_name,license', per_page: '50', page: String(page),
+      extras: 'url_z,url_l,url_h,url_k,owner_name,license', per_page: '50', page: String(page),
     };
     if (text) params.text = text;
     if (group) params.group_id = group;
@@ -385,11 +517,12 @@
     if (d.stat !== 'ok') throw new Error(d.code === 100 ? 'badkey' : 'flickr ' + d.code);
     const items = [];
     for (const p of (d.photos && d.photos.photo) || []) {
-      // 2048 → 1600 → 1024 の順で、あるいちばん大きいもの
       const pick = ['k', 'h', 'l'].map((z) => ({ url: p['url_' + z], w: +p['width_' + z], h: +p['height_' + z] })).find((x) => x.url);
       if (!pick || pick.w < 1024 || pick.w / pick.h < 1.15) continue;
       items.push({
-        id: 'f' + p.id, tier: 2, url: pick.url,
+        id: 'f' + p.id, tier: 2, tierName: '', url: pick.url, thumb: p.url_z || pick.url,
+        page: `https://www.flickr.com/photos/${p.owner}/${p.id}`,
+        author: p.owner || '',
         title: (p.title || '').slice(0, 80),
         credit: [p.ownername, FLICKR_LICENSES[p.license] || '', 'Flickr'].filter(Boolean).join('　'),
       });
@@ -400,7 +533,7 @@
   const FETCHERS = { commons: fetchCommons, unsplash: fetchUnsplash, flickr: fetchFlickr };
 
   function updateStatus() {
-    if (state.source === 'local') return;
+    if (!isApiSource(state.source)) return;
     const total = found[0] + found[1] + found[2];
     if (!total) { status.textContent = hasMore() ? '写真を集めています' : '見つかりませんでした。テーマを増やしてみてください。'; return; }
     const parts = [];
@@ -409,27 +542,44 @@
       if (found[1]) parts.push(`品質 ${found[1]}`);
       if (found[2]) parts.push(`ほか ${found[2]}`);
     }
+    if (deferred) parts.push(`連作 ${deferred} を後ろへ`);
     const detail = parts.length ? `（${parts.join('・')}）` : '';
     status.textContent = looping ? `${total}枚を一巡しました。繰り返しています。${detail}` : `${total}枚を見つけました${detail}`;
   }
 
+  // 重みに比例して語を選ぶ。直前と同じ語は、ほかに選べるなら避ける
+  function pickWeighted(cands, last) {
+    let list = cands.length > 1 && last ? cands.filter((f) => f !== last) : cands;
+    if (!list.length) list = cands;
+    let sum = 0; for (const f of list) sum += f.w;
+    let r = Math.random() * sum;
+    for (const f of list) { r -= f.w; if (r <= 0) return f; }
+    return list[list.length - 1];
+  }
+
   async function refill() {
     if (fetching || halted) return;
-    if (state.source === 'local') return;
+    if (!isApiSource(state.source)) return;
     fetching = true;
     const gen = generation;
     try {
       // いちばん上の段階で残りのある語をぜんぶ対象に、バッファの空いたものは並べて取りに行き、
-      // それぞれのバッファから少しずつ均等に取って混ぜる。1つの語が続かないように
+      // それぞれのバッファから重みに応じて取って混ぜる
       const got = [];
       for (const tier of [0, 1, 2]) {
         const open = feeds.filter((f) => f.tier === tier && feedOpen(f));
         if (!open.length) continue;
-        const empty = open.filter((f) => !f.buffer.length && !f.done).slice(0, 6);
+        const empty = open.filter((f) => !f.buffer.length && !f.cache.done).slice(0, 6);
         await Promise.all(empty.map((f) => fill(f)));
         if (gen !== generation) return;
-        for (let round = 0; round < 3 && got.length < 12; round++) {
-          for (const f of shuffle(open.slice())) if (f.buffer.length) got.push(f.buffer.shift());
+        // この段階のどの語にもふつうの在庫が無くなったら、後ろに回していた連作を出す
+        if (!open.some((f) => f.buffer.length)) for (const f of open) { f.buffer.push(...shuffle(f.overflow)); f.overflow = []; }
+        let last = null;
+        for (let n = 0; n < 12; n++) {
+          const cands = open.filter((f) => f.buffer.length);
+          if (!cands.length) break;
+          const f = pickWeighted(cands, last); last = f;
+          got.push(f.buffer.shift());
         }
         if (got.length) break;
       }
@@ -465,6 +615,11 @@
       if (!pool.length) pool = shuffle(localUrls.slice());   // 全部見せてから混ぜ直す
       return pool.shift();
     }
+    if (state.source === 'favorites') {
+      if (!favorites.length) return null;
+      if (!pool.length) pool = shuffle(favorites.map((f) => ({ ...f, tierName: f.tier })));
+      return pool.shift();
+    }
     if (pool.length < 6 && hasMore()) refill();
     if (!pool.length && !fetching && !hasMore()) recycle();
     return pool.shift() || null;
@@ -489,6 +644,14 @@
       img.style.transform = swap ? `scale(${s0}) translate(${x0}%, ${y0}%)` : `scale(${s1}) translate(${x1}%, ${y1}%)`;
     }));
   }
+  function renderCaption(photo) {
+    capTitle.textContent = '';
+    if (isFav(photo.id)) { const m = document.createElement('span'); m.className = 'fav'; m.textContent = '♥'; capTitle.appendChild(m); }
+    capTitle.appendChild(document.createTextNode(photo.title || ''));
+    capCredit.textContent = photo.credit || '';
+    const th = THEMES[photo.theme];
+    capDebug.textContent = [SOURCE_NAMES[photo.source] || photo.source, th && th.name, photo.query && `"${photo.query}"`, photo.tierName].filter(Boolean).join('　');
+  }
 
   let advancing = false;
   async function advance() {
@@ -498,11 +661,13 @@
     let photo = null;
     for (let i = 0; i < 4 && !photo; i++) {
       const cand = nextPhoto();
-      if (!cand) { if (state.source !== 'local') await refill(); continue; }
+      if (!cand) { if (isApiSource(state.source)) await refill(); continue; }
       try { await preload(cand.url); photo = cand; } catch (e) { /* 壊れた画像は飛ばす */ }
     }
     if (!photo) {
-      note.textContent = state.source === 'local' ? '設定から写真を選んでください' : (status.textContent || '写真を集めています');
+      note.textContent = state.source === 'local' ? '設定から写真を選んでください'
+        : state.source === 'favorites' ? 'お気に入りがまだありません。眺めながら L で登録してください'
+        : (status.textContent || '写真を集めています');
       note.classList.remove('hidden');
       advancing = false;
       if (!halted) timer = setTimeout(advance, 8000);   // 鍵の問題なら、鍵を入れ直すまで待つ
@@ -517,23 +682,81 @@
     incoming.classList.add('on');
     outgoing.classList.remove('on');
     current = 1 - current;
-    capTitle.textContent = photo.title || '';
-    capCredit.textContent = photo.credit || '';
-    history.set(photo.id, photo);
-    recent.push(photo.id); if (recent.length > 24) recent.shift();
+    currentPhoto = photo;
+    renderCaption(photo);
+    updateFavUI();
+    if (isApiSource(state.source)) {
+      history.set(photo.id, photo);
+      recent.push(photo.id); if (recent.length > 24) recent.shift();
+    }
     advancing = false;
     if (!paused) timer = setTimeout(advance, state.interval * 1000);
   }
 
   function restartSource() {
     generation++;
-    pool = []; history = new Map(); recent = []; seen = new Set(); found = [0, 0, 0]; looping = false; fetching = false; halted = false;
-    buildFeeds();
+    pool = []; history = new Map(); recent = []; seen = new Set(); authorTotal = new Map(); found = [0, 0, 0]; deferred = 0;
+    looping = false; fetching = false; halted = false;
+    if (isApiSource(state.source)) buildFeeds();
     status.textContent = '';
     note.textContent = '写真を集めています';
     note.classList.remove('hidden');
     advance();
   }
+
+  // ---------- 検索語の当たりを見る ----------
+  async function openSheet() {
+    if (!isApiSource(state.source)) { status.textContent = 'Commons・Unsplash・Flickr のときに使えます。'; return; }
+    sheet.classList.add('open');
+    const body = $('#sheetBody');
+    body.textContent = '';
+    $('#sheetLead').textContent = `${SOURCE_NAMES[state.source]}　${state.themes.filter((t) => THEMES[t]).map((t) => THEMES[t].name).join('・') || THEMES.blue.name}　写真を押すとお気に入りに入ります`;
+    // 通常検索の段階だけを、語ごとに1ページ見る。取ってあればそれを使う
+    const specs = activeQueries();
+    for (const spec of specs) {
+      const tier = 2;
+      const key = `${state.source}|${tier}|${spec.q}`;
+      let cache = feedCache.get(key);
+      if (!cache) { cache = { offset: 0, done: false, items: [] }; feedCache.set(key, cache); }
+      const box = document.createElement('div'); box.className = 'term';
+      const h = document.createElement('h2');
+      h.innerHTML = `<span class="q"></span><span class="meta"></span>`;
+      h.querySelector('.q').textContent = spec.q;
+      h.querySelector('.meta').textContent = `${THEMES[spec.theme].name}　重み ${spec.w}　取りに行っています`;
+      const cells = document.createElement('div'); cells.className = 'cells';
+      box.appendChild(h); box.appendChild(cells); body.appendChild(box);
+      if (!cache.items.length && !cache.done) {
+        try {
+          const res = await FETCHERS[state.source]({ ...spec, tier }, cache.offset);
+          if (res.next == null) cache.done = true; else cache.offset = res.next;
+          cache.items.push(...res.items);
+        } catch (e) {
+          h.querySelector('.meta').textContent = `${THEMES[spec.theme].name}　取りに行けませんでした（${e.message}）`;
+          continue;
+        }
+      }
+      if (!sheet.classList.contains('open')) return;
+      h.querySelector('.meta').textContent = `${THEMES[spec.theme].name}　重み ${spec.w}　${cache.items.length}枚`;
+      for (const p of cache.items.slice(0, 16)) {
+        const cell = document.createElement('div'); cell.className = 'cell' + (isFav(p.id) ? ' fav' : '');
+        const img = document.createElement('img'); img.loading = 'lazy'; img.src = p.thumb || p.url; img.alt = '';
+        const mark = document.createElement('span'); mark.className = 'mark'; mark.textContent = isFav(p.id) ? '♥' : '';
+        const cap = document.createElement('small'); cap.textContent = [p.title, p.author].filter(Boolean).join('　');
+        cell.appendChild(img); cell.appendChild(mark); cell.appendChild(cap);
+        cell.addEventListener('click', () => {
+          const on = toggleFav({ ...p, query: spec.q, theme: spec.theme, source: state.source });
+          cell.classList.toggle('fav', on); mark.textContent = on ? '♥' : '';
+        });
+        cells.appendChild(cell);
+      }
+    }
+    // 在庫の側にも、いま取ってきた分を反映する
+    if (isApiSource(state.source)) for (const f of feeds) for (const p of f.cache.items) admit(f, p);
+    updateStatus();
+  }
+  function closeSheet() { sheet.classList.remove('open'); }
+  $('#btnSheet').addEventListener('click', () => { togglePanel(false); openSheet(); });
+  $('#btnSheetClose').addEventListener('click', closeSheet);
 
   // ---------- 時計 ----------
   const DAYS = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
@@ -549,7 +772,7 @@
   function wake() {
     document.body.classList.add('awake');
     clearTimeout(sleepTimer);
-    sleepTimer = setTimeout(() => { if (!panel.classList.contains('open')) document.body.classList.remove('awake'); }, 3500);
+    sleepTimer = setTimeout(() => { if (!panel.classList.contains('open') && !sheet.classList.contains('open')) document.body.classList.remove('awake'); }, 3500);
   }
   ['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, wake, { passive: true }));
 
@@ -563,6 +786,7 @@
     if (open) wake();
   }
 
+  $('#btnFav').addEventListener('click', () => toggleFav(currentPhoto));
   $('#btnNext').addEventListener('click', () => advance());
   $('#btnFull').addEventListener('click', toggleFull);
   $('#btnSettings').addEventListener('click', () => togglePanel());
@@ -570,12 +794,15 @@
 
   window.addEventListener('keydown', (e) => {
     if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    const k = e.key.toLowerCase();
     if (e.key === ' ') { e.preventDefault(); paused = !paused; if (paused) clearTimeout(timer); else advance(); }
     else if (e.key === 'ArrowRight') advance();
-    else if (e.key === 'f' || e.key === 'F') toggleFull();
-    else if (e.key === 'c' || e.key === 'C') { state.caption = !state.caption; applyView(); saveState(); $('#showCaption').checked = state.caption; }
-    else if (e.key === 's' || e.key === 'S') togglePanel();
-    else if (e.key === 'Escape') togglePanel(false);
+    else if (k === 'l') toggleFav(currentPhoto);
+    else if (k === 'f') toggleFull();
+    else if (k === 'c') { state.caption = !state.caption; applyView(); saveState(); $('#showCaption').checked = state.caption; }
+    else if (k === 'd') { state.debug = !state.debug; applyView(); saveState(); $('#showDebug').checked = state.debug; }
+    else if (k === 's') togglePanel();
+    else if (e.key === 'Escape') { if (sheet.classList.contains('open')) closeSheet(); else togglePanel(false); }
   });
 
   // ---------- 設定の配線 ----------
@@ -583,6 +810,7 @@
     tintEl.style.opacity = state.tint / 100;
     captionEl.classList.toggle('hidden', !state.caption);
     clockEl.classList.toggle('hidden', !state.clock);
+    capDebug.hidden = !state.debug;
     $('#intervalVal').textContent = state.interval + '秒';
     $('#tintVal').textContent = state.tint;
     $('#unsplashBox').hidden = state.source !== 'unsplash';
@@ -593,10 +821,10 @@
     $('#unsplashKey').value = state.unsplashKey;
     $('#flickrKey').value = state.flickrKey;
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
-    $('#interval').value = state.interval; $('#tint').value = state.tint;
-    $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock;
+    $('#interval').value = state.interval; $('#tintRange').value = state.tint;
+    $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
   }
-  syncForm(); applyView();
+  syncForm(); applyView(); updateFavUI();
 
   document.querySelectorAll('input[name=source]').forEach((r) => r.addEventListener('change', () => {
     state.source = r.value; applyView(); saveState();
@@ -607,20 +835,54 @@
   $('#flickrKey').addEventListener('change', () => { state.flickrKey = $('#flickrKey').value.trim(); saveState(); if (state.source === 'flickr') restartSource(); });
   document.querySelectorAll('input[name=theme]').forEach((c) => c.addEventListener('change', () => {
     state.themes = [...document.querySelectorAll('input[name=theme]:checked')].map((x) => x.value);
-    saveState(); if (state.source !== 'local') restartSource();
+    saveState(); if (isApiSource(state.source)) restartSource();
   }));
   $('#interval').addEventListener('input', () => { state.interval = +$('#interval').value; applyView(); saveState(); });
-  $('#tint').addEventListener('input', () => { state.tint = +$('#tint').value; applyView(); saveState(); });
+  $('#tintRange').addEventListener('input', () => { state.tint = +$('#tintRange').value; applyView(); saveState(); });
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
   $('#showCaption').addEventListener('change', () => { state.caption = $('#showCaption').checked; applyView(); saveState(); });
   $('#showClock').addEventListener('change', () => { state.clock = $('#showClock').checked; applyView(); saveState(); });
+  $('#showDebug').addEventListener('change', () => { state.debug = $('#showDebug').checked; applyView(); saveState(); });
+
+  // お気に入りの書き出し・読み込み
+  $('#btnFavExport').addEventListener('click', () => {
+    const blob = new Blob([favJson()], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `aonojikan-favorites-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  });
+  $('#btnFavCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(favJson()); $('#favCount').textContent = `${favorites.length}枚　コピーしました`; }
+    catch (e) { $('#favCount').textContent = 'コピーできませんでした。書き出しを使ってください。'; }
+  });
+  $('#btnFavImport').addEventListener('click', () => $('#fileFavs').click());
+  $('#fileFavs').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      const list = Array.isArray(d) ? d : (d.photos || []);
+      let added = 0;
+      for (const p of list) if (p && p.id && p.url && !isFav(p.id)) { favorites.push(p); added++; }
+      saveFavs(); updateFavUI();
+      $('#favCount').textContent = `${favorites.length}枚　${added}枚を読み込みました`;
+      if (state.source === 'favorites') restartSource();
+    } catch (err) { $('#favCount').textContent = '読み込めませんでした。'; }
+    e.target.value = '';
+  });
+  $('#btnFavClear').addEventListener('click', () => {
+    if (!favorites.length || !confirm(`お気に入り ${favorites.length}枚 を全部消しますか？`)) return;
+    favorites = []; saveFavs(); updateFavUI();
+    if (state.source === 'favorites') restartSource();
+  });
 
   // 自分の写真
   $('#btnPickImages').addEventListener('click', () => $('#fileImages').click());
   $('#fileImages').addEventListener('change', (e) => {
     localUrls.forEach((p) => URL.revokeObjectURL(p.url));
     localUrls = [...e.target.files].filter((f) => f.type.startsWith('image/')).map((f) => ({
-      id: 'l' + f.name, url: URL.createObjectURL(f), title: f.name.replace(/\.[a-z0-9]+$/i, ''), credit: '',
+      id: 'l' + f.name, source: 'local', url: URL.createObjectURL(f), title: f.name.replace(/\.[a-z0-9]+$/i, ''), credit: '',
     }));
     $('#localCount').textContent = localUrls.length ? `${localUrls.length}枚を選びました。` : '写真が選ばれていません。';
     if (localUrls.length) { state.source = 'local'; syncForm(); applyView(); saveState(); restartSource(); }
@@ -645,7 +907,7 @@
   audio.addEventListener('ended', () => { trackIdx++; playTrack(); });
 
   // ---------- はじまり ----------
-  buildFeeds();
+  if (isApiSource(state.source)) buildFeeds();
   wake();
   advance();
 })();
