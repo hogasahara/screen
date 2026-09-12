@@ -80,7 +80,7 @@
 
 ### 未検証
 - 取得・ループ・重み・連作の後回し・お気に入り・キャッシュは、Commons と Unsplash の API をモックしたヘッドレス Chromium で確認済み。作成環境には Unsplash の鍵が無いので、新しい語の当たりは本人が「検索語の当たりを見る」で確かめる
-- Commons の除外語つきの語（`japan town street -tokyo -osaka -festival`）はレート制限で API 確認が取れていない。`rural japan town -festival` は通った
+- Commons の除外語つきの語（`japan town street -tokyo -osaka -festival`）は API で確認済み（40件中28枚が使え、タイトルに tokyo を含むものは無し）
 - Unsplash 本番申請はしていない（開発モード 50要求/時）。眺めるだけなら足りる見込み
 
 ## GitHub Pages 化（済み）
