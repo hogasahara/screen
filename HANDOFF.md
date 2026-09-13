@@ -78,10 +78,21 @@
 - 語の当たりを目で確かめる方法：ページ内の「検索語の当たりを見る」。作成環境からは Commons について API で `iiurlwidth=480` のサムネを取って HTML に並べ、ヘッドレス Chromium でスクリーンショット（コンタクトシート）にした。連続で叩くと "too many requests" になるので 2 秒以上あける
 - Flickr の API キーは Pro アカウント限定になった。コードは残してある（`fetchFlickr`、`group:ID` 記法）
 
+### 雨の窓ガラス（演出）
+- 「見せかた」の「雨」スライダー（0〜100、`state.rain`）。`R` で なし→小雨→雨→本降り→豪雨 を巡回。0 より大きいときだけ `rain/raindrop-fx.js` を動的に読み込む
+- 土台は [raindrop-fx](https://github.com/SardineFish/raindrop-fx)（SardineFish、MIT、WebGL2、npm 1.0.8 の bundle をそのまま同梱）。調査で rainyday.js（Canvas 2D、GPLv2、品質低）、Codrops RainEffect（WebGL1、2015年、背景を毎フレーム更新できる代替候補）、Shadertoy 系の自作（Heartfelt は CC BY-NC-SA で流用不可）、three.js の透過材質（動かない）と比べて選んだ。詳しい比較はセッションの記録にある
+- 仕組み：雨がオンのときは `#stage`（CSS のスライド）を隠し、`#rain` のキャンバスに raindrop-fx が写真ごと描く。写真は中間キャンバス `rainBg` に cover で描いて `setBackground(rainBg)` で渡す。写真が替わったら `rainShow(img)` が4秒かけて前の写真から溶け込ませる（100ms ごとに中間キャンバスを描き直して渡す。`setBackground` はミップマップとぼかしを作り直すので毎フレームには向かない）。ゆっくり動く効果は雨のキャンバスごと CSS transform で動かす（`kenBurns(rainCanvas)`）。青の深さ・粒子・ビネットは雨の上にそのまま乗る
+- WebGL のテクスチャに使うため、雨のときは `preload(url, true)` で `crossOrigin='anonymous'` を付けて読む。Commons と Unsplash は CORS 対応を確認済み。Flickr は未確認。手元のファイル（blob:）は不要
+- 雨量→設定は `rainOptions(v)`：生成間隔 [0.35,0.9]→[0.012,0.03] 秒、大きさ、上限 250→2000、小粒 40→900/秒、滑り、蒸発、霧の濃さ 0.08→0.5、背景のにじみ段階 1（〜59）/2（〜84）/3。設定はオブジェクトを書き換えるだけで効くが、にじみ段階だけは背景の渡し直しが要る
+- ヘッドレス Chromium（SwiftShader）で実時間 25 秒動かして目視。小雨は滴がまばらで写真が鮮明、本降りは滴が密で筋が流れる、豪雨は水膜で景色がにじむ。切り替えの溶け込みも自然。実機 GPU での負荷と見え方は本人の確認待ち
+- `window.__aono()` は検索語の表示がオンのときだけ雨まわりの内部状態を返す調整用の窓口
+- 音（雨音）は後回し。合成（Web Audio）から始める案を提示済み
+
 ### 未検証
 - 取得・ループ・重み・連作の後回し・お気に入り・キャッシュは、Commons と Unsplash の API をモックしたヘッドレス Chromium で確認済み。作成環境には Unsplash の鍵が無いので、新しい語の当たりは本人が「検索語の当たりを見る」で確かめる
 - Commons の除外語つきの語（`japan town street -tokyo -osaka -festival`）は API で確認済み（40件中28枚が使え、タイトルに tokyo を含むものは無し）
 - Unsplash 本番申請はしていない（開発モード 50要求/時）。眺めるだけなら足りる見込み
+- 雨の実機での負荷（1080p で 2〜3ms/フレームの触れ込み）と、Flickr 画像の CORS
 
 ## GitHub Pages 化（済み）
 

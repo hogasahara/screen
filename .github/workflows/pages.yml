@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html manifest.json icon.svg icon-192.png icon-512.png _site/
+          mkdir -p _site/rain && cp rain/raindrop-fx.js rain/LICENSE _site/rain/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

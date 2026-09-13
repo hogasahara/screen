@@ -35,6 +35,13 @@
   .slide img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: center; will-change: transform; }
   .slide.motion img { transition: transform var(--kb, 40s) linear; }
 
+  /* 雨の窓ガラス（raindrop-fx が写真ごと描く。雨のときは CSS のスライドを隠す） */
+  #rain { position: fixed; inset: 0; display: none; background: var(--navy-deep); }
+  #rain.on { display: block; }
+  body.raining #stage { visibility: hidden; }
+  #rain canvas { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: center; will-change: transform; }
+  #rain.motion canvas { transition: transform var(--kb, 40s) linear; }
+
   /* 青の時間のかぶせ・粒子 */
   #tint { position: fixed; inset: 0; pointer-events: none; mix-blend-mode: multiply;
     background: linear-gradient(180deg, rgb(22, 44, 96) 0%, rgb(38, 42, 82) 60%, rgb(52, 40, 60) 100%); opacity: 0.28; transition: opacity 1s; }
@@ -123,6 +130,7 @@
   <div class="slide" id="slideA"><img alt=""></div>
   <div class="slide" id="slideB"><img alt=""></div>
 </div>
+<div id="rain"><canvas id="rainCanvas"></canvas></div>
 <div id="tint"></div>
 <div id="vignette"></div>
 <div id="grain"></div>
@@ -193,6 +201,9 @@
     <input type="range" id="interval" min="8" max="120" step="1" value="30">
     <div class="row" style="margin-top:10px"><span>青の深さ</span><span class="val" id="tintVal">28</span></div>
     <input type="range" id="tintRange" min="0" max="60" step="1" value="28">
+    <div class="row" style="margin-top:10px"><span>雨</span><span class="val" id="rainVal">なし</span></div>
+    <input type="range" id="rainRange" min="0" max="100" step="1" value="0">
+    <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
@@ -227,6 +238,7 @@
       <div><kbd>→</kbd>次の一枚</div>
       <div><kbd>L</kbd>お気に入りに入れる・外す</div>
       <div><kbd>F</kbd>全画面</div>
+      <div><kbd>R</kbd>雨（なし→小雨→雨→本降り→豪雨）</div>
       <div><kbd>C</kbd>キャプション</div>
       <div><kbd>D</kbd>検索語を出す</div>
       <div><kbd>S</kbd>この設定</div>
@@ -293,7 +305,7 @@
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
-    interval: 30, tint: 28, motion: true, caption: true, clock: true, debug: false,
+    interval: 30, tint: 28, rain: 0, motion: true, caption: true, clock: true, debug: false,
   };
   function loadState() {
     try {
@@ -626,9 +638,10 @@
   }
 
   // ---------- 表示 ----------
-  function preload(url) {
-    return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+  function preload(url, cors) {
+    return new Promise((res, rej) => { const i = new Image(); if (cors && !url.startsWith('blob:')) i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = url; });
   }
+  let currentImg = null;   // いま見せている写真の Image（雨の背景に使う）
   function kenBurns(img, seconds) {
     if (!state.motion) { img.style.transition = 'none'; img.style.transform = 'scale(1.03)'; return; }
     const s0 = 1.04 + Math.random() * 0.04, s1 = s0 + 0.08 + Math.random() * 0.06;
@@ -658,11 +671,11 @@
     if (advancing) return;
     advancing = true;
     clearTimeout(timer);
-    let photo = null;
+    let photo = null, loaded = null;
     for (let i = 0; i < 4 && !photo; i++) {
       const cand = nextPhoto();
       if (!cand) { if (isApiSource(state.source)) await refill(); continue; }
-      try { await preload(cand.url); photo = cand; } catch (e) { /* 壊れた画像は飛ばす */ }
+      try { loaded = await preload(cand.url, state.rain > 0); photo = cand; } catch (e) { /* 壊れた画像は飛ばす */ }
     }
     if (!photo) {
       note.textContent = state.source === 'local' ? '設定から写真を選んでください'
@@ -682,7 +695,8 @@
     incoming.classList.add('on');
     outgoing.classList.remove('on');
     current = 1 - current;
-    currentPhoto = photo;
+    currentPhoto = photo; currentImg = loaded;
+    if (state.rain > 0) { rainShow(loaded); rainEl.classList.toggle('motion', state.motion); kenBurns(rainCanvas, state.interval); }
     renderCaption(photo);
     updateFavUI();
     if (isApiSource(state.source)) {
@@ -758,6 +772,121 @@
   $('#btnSheet').addEventListener('click', () => { togglePanel(false); openSheet(); });
   $('#btnSheetClose').addEventListener('click', closeSheet);
 
+  // ---------- 雨の窓ガラス ----------
+  // raindrop-fx（SardineFish、MIT、rain/raindrop-fx.js）に写真を背景として渡し、滴と筋と霧を描いてもらう。
+  // 写真の溶け込みは中間キャンバスで描いて数秒間だけ背景を差し替え続け、ゆっくり動く効果は雨のキャンバスごと動かす。
+  const rainEl = $('#rain'), rainCanvas = $('#rainCanvas');
+  let rainFx = null, rainLib = null, rainLoading = null;
+  let rainBg = null, rainBgCtx = null;
+  let rainPrevImg = null, rainCurImg = null, rainFadeStart = 0, rainFadeTimer = null, rainBusy = false;
+  const RAIN_STEPS = [0, 15, 40, 70, 100];
+  function rainLevelName(v) { return v <= 0 ? 'なし' : v < 25 ? '小雨' : v < 50 ? '雨' : v < 75 ? '本降り' : '豪雨'; }
+  function rainSupported() { try { return !!document.createElement('canvas').getContext('webgl2'); } catch (e) { return false; } }
+  function loadRainLib() {
+    if (rainLib) return Promise.resolve(rainLib);
+    if (!rainLoading) rainLoading = new Promise((res, rej) => {
+      const sc = document.createElement('script'); sc.src = 'rain/raindrop-fx.js';
+      sc.onload = () => { const L = window.RaindropFX && (window.RaindropFX.default || window.RaindropFX); L ? res(rainLib = L) : rej(new Error('nolib')); };
+      sc.onerror = () => rej(new Error('load'));
+      document.head.appendChild(sc);
+    });
+    return rainLoading;
+  }
+  // 雨量 0〜100 を raindrop-fx の設定に写す。小雨はまばらな小粒がゆっくり増え、豪雨は水膜になって景色がにじむ
+  function rainOptions(v) {
+    const t = Math.max(0, Math.min(1, (v - 1) / 99));
+    const lerp = (a, b) => a + (b - a) * t;
+    return {
+      spawnInterval: [lerp(0.35, 0.012), lerp(0.9, 0.03)],
+      spawnSize: [lerp(38, 55), lerp(75, 130)],
+      spawnLimit: Math.round(lerp(250, 2000)),
+      dropletsPerSeconds: Math.round(lerp(40, 900)),
+      dropletSize: [lerp(6, 10), lerp(16, 30)],
+      slipRate: lerp(0.05, 0.4),
+      evaporate: lerp(16, 4),
+      trailDropDensity: lerp(0.12, 0.3),
+      xShifting: [0, lerp(0.02, 0.12)],
+      mist: true,
+      mistColor: [0.05, 0.08, 0.16, lerp(0.08, 0.5)],
+      mistTime: lerp(30, 8),
+      backgroundBlurSteps: v < 60 ? 1 : v < 85 ? 2 : 3,   // 写真を見せたいので、本降りまではにじみを弱く
+    };
+  }
+  function sizeRainCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.max(2, Math.round(innerWidth * dpr)), h = Math.max(2, Math.round(innerHeight * dpr));
+    if (rainCanvas.width !== w || rainCanvas.height !== h) { rainCanvas.width = w; rainCanvas.height = h; if (rainFx) rainFx.resize(w, h); }
+    if (!rainBg) { rainBg = document.createElement('canvas'); rainBgCtx = rainBg.getContext('2d'); }
+    const bw = Math.min(1920, w), bh = Math.round(bw * h / w);
+    if (rainBg.width !== bw || rainBg.height !== bh) { rainBg.width = bw; rainBg.height = bh; }
+  }
+  function drawCover(ctx, img, alpha) {
+    const W = ctx.canvas.width, H = ctx.canvas.height;
+    const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    const r = Math.max(W / iw, H / ih), w = iw * r, h = ih * r;
+    ctx.globalAlpha = alpha; ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h); ctx.globalAlpha = 1;
+  }
+  function rainPushBackground() {
+    if (!rainFx || rainBusy) return;
+    rainBusy = true;
+    Promise.resolve(rainFx.setBackground(rainBg)).catch(() => {}).finally(() => { rainBusy = false; });
+  }
+  function rainShow(img) {   // 写真が替わった。4秒かけて前の写真から溶け込む
+    if (!img) return;
+    rainPrevImg = rainCurImg; rainCurImg = img; rainFadeStart = performance.now();
+    clearTimeout(rainFadeTimer);
+    rainFadeStep();
+  }
+  function rainFadeStep() {
+    if (!rainFx || !rainCurImg) return;
+    sizeRainCanvas();
+    const t = Math.min(1, (performance.now() - rainFadeStart) / 4000);
+    const ctx = rainBgCtx;
+    ctx.fillStyle = '#0a1224'; ctx.fillRect(0, 0, rainBg.width, rainBg.height);
+    if (rainPrevImg) drawCover(ctx, rainPrevImg, 1);
+    drawCover(ctx, rainCurImg, t);
+    rainPushBackground();
+    if (t < 1) rainFadeTimer = setTimeout(rainFadeStep, 100);
+  }
+  async function applyRain() {
+    const v = state.rain;
+    $('#rainVal').textContent = rainLevelName(v);
+    if (v <= 0) { stopRain(); return; }
+    if (!rainSupported()) { $('#rainNote').textContent = 'この端末では雨が使えません（WebGL2 がありません）。'; state.rain = 0; $('#rainRange').value = 0; $('#rainVal').textContent = 'なし'; saveState(); return; }
+    let Lib;
+    try { Lib = await loadRainLib(); } catch (e) { $('#rainNote').textContent = '雨の部品を読み込めませんでした。'; return; }
+    if (state.rain <= 0) return;   // 読み込んでいる間に戻された
+    if (!rainFx) {
+      sizeRainCanvas();
+      rainBgCtx.fillStyle = '#0a1224'; rainBgCtx.fillRect(0, 0, rainBg.width, rainBg.height);
+      try {
+        rainFx = new Lib({ canvas: rainCanvas, background: rainBg, ...rainOptions(v) });
+        await rainFx.start();
+      } catch (e) { rainFx = null; $('#rainNote').textContent = '雨を始められませんでした（' + e.message + '）。'; return; }
+      rainEl.classList.add('on'); document.body.classList.add('raining');
+      // いま見せている写真を、テクスチャに使える形で読み直して背景に
+      if (currentPhoto) {
+        try { const img = (currentImg && (currentImg.crossOrigin || currentPhoto.url.startsWith('blob:'))) ? currentImg : await preload(currentPhoto.url, true); rainCurImg = null; rainShow(img); }
+        catch (e) {}
+        rainEl.classList.toggle('motion', state.motion); kenBurns(rainCanvas, state.interval);
+      }
+    } else {
+      const prevBlur = rainFx.options.backgroundBlurSteps;
+      Object.assign(rainFx.options, rainOptions(v));
+      if (rainFx.options.backgroundBlurSteps !== prevBlur) rainPushBackground();
+    }
+  }
+  function stopRain() {
+    clearTimeout(rainFadeTimer);
+    if (rainFx) { try { rainFx.stop(); } catch (e) {} rainFx = null; }
+    rainPrevImg = rainCurImg = null;
+    rainEl.classList.remove('on'); document.body.classList.remove('raining');
+  }
+  window.addEventListener('resize', () => { if (rainFx) { sizeRainCanvas(); rainFadeStart = 0; rainFadeStep(); } });
+  // 調整用：検索語の表示がオンのとき、雨まわりの内部状態を覗けるようにしておく
+  window.__aono = () => state.debug ? { rain: state.rain, fx: !!rainFx, busy: rainBusy, cur: !!rainCurImg, prev: !!rainPrevImg, curImg: !!currentImg, photo: currentPhoto && currentPhoto.url,
+    bg: rainBg && [rainBg.width, rainBg.height], bgData: rainBg && rainBg.toDataURL('image/jpeg', 0.5), fadeT: rainFadeStart && Math.round(performance.now() - rainFadeStart) } : null;
+
   // ---------- 時計 ----------
   const DAYS = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
   function tick() {
@@ -801,6 +930,7 @@
     else if (k === 'f') toggleFull();
     else if (k === 'c') { state.caption = !state.caption; applyView(); saveState(); $('#showCaption').checked = state.caption; }
     else if (k === 'd') { state.debug = !state.debug; applyView(); saveState(); $('#showDebug').checked = state.debug; }
+    else if (k === 'r') { const i = RAIN_STEPS.findIndex((x) => x >= state.rain); state.rain = RAIN_STEPS[(i + 1) % RAIN_STEPS.length]; $('#rainRange').value = state.rain; saveState(); applyRain(); }
     else if (k === 's') togglePanel();
     else if (e.key === 'Escape') { if (sheet.classList.contains('open')) closeSheet(); else togglePanel(false); }
   });
@@ -821,7 +951,7 @@
     $('#unsplashKey').value = state.unsplashKey;
     $('#flickrKey').value = state.flickrKey;
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
-    $('#interval').value = state.interval; $('#tintRange').value = state.tint;
+    $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain;
     $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
   }
   syncForm(); applyView(); updateFavUI();
@@ -839,6 +969,8 @@
   }));
   $('#interval').addEventListener('input', () => { state.interval = +$('#interval').value; applyView(); saveState(); });
   $('#tintRange').addEventListener('input', () => { state.tint = +$('#tintRange').value; applyView(); saveState(); });
+  let rainInputTimer = null;
+  $('#rainRange').addEventListener('input', () => { state.rain = +$('#rainRange').value; $('#rainVal').textContent = rainLevelName(state.rain); saveState(); clearTimeout(rainInputTimer); rainInputTimer = setTimeout(applyRain, 150); });
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
   $('#showCaption').addEventListener('change', () => { state.caption = $('#showCaption').checked; applyView(); saveState(); });
   $('#showClock').addEventListener('change', () => { state.clock = $('#showClock').checked; applyView(); saveState(); });
@@ -910,6 +1042,7 @@
   if (isApiSource(state.source)) buildFeeds();
   wake();
   advance();
+  if (state.rain > 0) applyRain();
 })();
 </script>
 </body>
