@@ -205,6 +205,7 @@
     <div class="row" style="margin-top:10px"><span>雨</span><span class="val" id="rainVal">なし</span></div>
     <input type="range" id="rainRange" min="0" max="100" step="1" value="0">
     <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
+    <label><input type="checkbox" id="rainBlur"> 窓の外を少しにじませる（雨のとき）</label>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
@@ -306,7 +307,7 @@
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
-    interval: 30, tint: 28, rain: 0, motion: true, caption: true, clock: true, debug: false,
+    interval: 30, tint: 28, rain: 0, rainBlur: false, motion: true, caption: true, clock: true, debug: false,
   };
   function loadState() {
     try {
@@ -812,9 +813,13 @@
       trailDistance: [lerp(20, 8), lerp(30, 14)],
       xShifting: [0, lerp(0.02, 0.25)],
       // 霧は「無し」にすると合成が滴のマスクだけになるので、完全に透明な霧を置いて見た目だけ消す。
-      // にじみ段階は最小の 1。0 にすると滴が背景と区別できなくなり、ほとんど見えなくなる
-      mist: true, mistColor: [0, 0, 0, 0], mistTime: 1e9, mistBlurStep: 1,
-      backgroundBlurSteps: 1,
+      // にじみ段階は設定で 0 か 1。0 のときは滴が背景に溶けやすいので、屈折と光を強めて滴を立たせる
+      mist: true, mistColor: [0, 0, 0, 0], mistTime: 1e9,
+      backgroundBlurSteps: state.rainBlur ? 1 : 0, mistBlurStep: state.rainBlur ? 1 : 0,
+      refractBase: state.rainBlur ? 0.4 : 0.55, refractScale: state.rainBlur ? 0.6 : 0.9,
+      raindropDiffuseLight: state.rainBlur ? [0.2, 0.2, 0.2] : [0.3, 0.3, 0.3],
+      raindropSpecularLight: state.rainBlur ? [0, 0, 0] : [0.25, 0.25, 0.25], raindropSpecularShininess: 128,
+      raindropShadowOffset: state.rainBlur ? 0.8 : 1.0,
     };
   }
   function rainShade(v) { $('#rainShade').style.opacity = v > 0 ? (0.22 * Math.max(0, Math.min(1, (v - 1) / 99))).toFixed(3) : '0'; }   // 雨雲の下の暗さ
@@ -867,6 +872,12 @@
       rainBgCtx.fillStyle = '#0a1224'; rainBgCtx.fillRect(0, 0, rainBg.width, rainBg.height);
       try {
         rainFx = new Lib({ canvas: rainCanvas, background: rainBg, ...rainOptions(v) });
+        // にじみ段階 0 だと raindrop-fx は合成用の背景を作らないので、ぼかし無しの背景をそのまま流し込む
+        const R = rainFx.renderer;
+        if (R && R.blurBackground && R.renderer && R.renderer.blit) {
+          const orig = R.blurBackground.bind(R);
+          R.blurBackground = () => { orig(); if (R.options.backgroundBlurSteps === 0) { R.renderer.blit(R.background, R.blurryBackground); if (R.mistBackground) R.renderer.blit(R.background, R.mistBackground); } };
+        }
         await rainFx.start();
       } catch (e) { rainFx = null; $('#rainNote').textContent = '雨を始められませんでした（' + e.message + '）。'; return; }
       rainEl.classList.add('on'); document.body.classList.add('raining');
@@ -876,7 +887,9 @@
         catch (e) {}
       }
     } else {
+      const prevBlur = rainFx.options.backgroundBlurSteps;
       Object.assign(rainFx.options, rainOptions(v));
+      if (rainFx.options.backgroundBlurSteps !== prevBlur) rainPushBackground();   // にじみの切り替えは背景の作り直しが要る
     }
     rainShade(state.rain);
   }
@@ -956,7 +969,7 @@
     $('#unsplashKey').value = state.unsplashKey;
     $('#flickrKey').value = state.flickrKey;
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
-    $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain;
+    $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain; $('#rainBlur').checked = !!state.rainBlur;
     $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
   }
   syncForm(); applyView(); updateFavUI();
@@ -974,6 +987,7 @@
   }));
   $('#interval').addEventListener('input', () => { state.interval = +$('#interval').value; applyView(); saveState(); });
   $('#tintRange').addEventListener('input', () => { state.tint = +$('#tintRange').value; applyView(); saveState(); });
+  $('#rainBlur').addEventListener('change', () => { state.rainBlur = $('#rainBlur').checked; saveState(); if (state.rain > 0) applyRain(); });
   let rainInputTimer = null;
   $('#rainRange').addEventListener('input', () => { state.rain = +$('#rainRange').value; $('#rainVal').textContent = rainLevelName(state.rain); saveState(); clearTimeout(rainInputTimer); rainInputTimer = setTimeout(applyRain, 150); });
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
