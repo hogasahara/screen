@@ -195,6 +195,7 @@
     <label><input type="checkbox" name="theme" value="field"> 田園と空</label>
     <label><input type="checkbox" name="theme" value="america"> アンコモン・プレイス（アメリカ）</label>
     <label><input type="checkbox" name="theme" value="japan"> 日本の街</label>
+    <label><input type="checkbox" name="theme" value="malta"> マルタ島</label>
     <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
     <button class="file" id="btnSheet" type="button">検索語の当たりを見る</button>
     <small>いま選んでいる出どころとテーマの語ごとに、取れた写真を一覧にします。Unsplash では語の数だけ要求を使います。</small>
@@ -317,6 +318,14 @@
       unsplash: ['rural japan town street', 'japan countryside houses', 'japanese small town shop', 'japan village houses', 'japan seaside town',
                  'japan mountain town', 'japan shop front', 'japan town street evening', 'japan town film photography',
                  { q: 'japan vending machine street', w: 0.3 }, { q: 'japan snack bar night', w: 0.3 }, { q: 'japan level crossing', w: 0.2 }] },
+    malta: { name: 'マルタ島',
+      // 地中海の観光地。蜂蜜色の石灰岩の家並みと木の出窓、港と舟、集落と教会のドーム。近景から遠景まで、人はいないか小さい
+      // 島全体が観光地なので、観光地の地名を避ける方針の例外。首都や漁港は絵葉書に寄りやすいので差し込みに落とす
+      commons: ['malta village', 'malta harbour', 'malta street', 'gozo village', { q: 'valletta', w: 0.6 }, { q: 'marsaxlokk', w: 0.5 },
+                { q: 'mdina', w: 0.4 }, { q: 'malta church dome', w: 0.3 }],
+      unsplash: ['malta street balconies', 'malta limestone houses', 'malta harbour boats', 'gozo village', 'valletta street', 'malta town evening',
+                 'malta coast village', 'malta film photography', { q: 'marsaxlokk fishing boats', w: 0.5 }, { q: 'mdina street', w: 0.4 },
+                 { q: 'malta church dome town', w: 0.3 }] },
   };
   const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
