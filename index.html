@@ -95,6 +95,10 @@
   #panel .keys div { color: var(--mist); font-size: 12.5px; }
   #panel .close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--mist); font: inherit; font-size: 22px; cursor: pointer; }
   #panel .status { color: var(--mist); font-size: 12px; margin-top: 8px; min-height: 1.6em; }
+  #panel details summary { cursor: pointer; list-style: none; font-size: 13px; letter-spacing: 0.18em; color: var(--paper-dim); }
+  #panel details summary::before { content: '▸'; display: inline-block; width: 1.2em; color: var(--mist); }
+  #panel details[open] summary::before { content: '▾'; }
+  #panel details .body { padding-top: 10px; }
 
   /* 検索語の当たりを見る */
   #sheet { position: fixed; inset: 0; background: rgba(6, 10, 22, 0.96); overflow-y: auto; padding: 28px 32px 48px; display: none; z-index: 5; }
@@ -205,14 +209,23 @@
     <div class="row" style="margin-top:10px"><span>雨</span><span class="val" id="rainVal">なし</span></div>
     <input type="range" id="rainRange" min="0" max="100" step="1" value="0">
     <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
-    <div class="row" style="margin-top:10px"><span>雫の陰影</span><span class="val" id="rainShadowVal">40</span></div>
-    <input type="range" id="rainShadowRange" min="0" max="100" step="1" value="40">
-    <small>左は淡く明るい雫、右は影の濃い雫。</small>
-    <label><input type="checkbox" id="rainBlur"> 窓の外を少しにじませる（雨のとき）</label>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
-    <label><input type="checkbox" id="showDebug"> 検索語も出す（調整用）</label>
+  </section>
+
+  <section>
+    <details>
+      <summary>高度な設定</summary>
+      <div class="body">
+        <small style="margin:0 0 8px">ふだん変える必要のないもの。</small>
+        <div class="row"><span>雫の陰影</span><span class="val" id="rainShadowVal">73</span></div>
+        <input type="range" id="rainShadowRange" min="0" max="100" step="1" value="73">
+        <small>左は淡く明るい雫、右は影の濃い雫。写真の彩度に合わせて。</small>
+        <label style="margin-top:8px"><input type="checkbox" id="rainBlur"> 窓の外を少しにじませる（雨のとき）</label>
+        <label><input type="checkbox" id="showDebug"> 検索語も出す（調整用）</label>
+      </div>
+    </details>
   </section>
 
   <section>
@@ -310,7 +323,7 @@
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
-    interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 40, motion: true, caption: true, clock: true, debug: false,
+    interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, debug: false,
   };
   function loadState() {
     try {
@@ -805,7 +818,7 @@
     const lerp = (a, b) => a + (b - a) * t;
     // 雫の大きさは雨量 60 あたりで頭打ち。それより強い雨は数と速さで出す（大粒と太い筋にしない）
     const ts = Math.min(1, t / 0.45), lerpS = (a, b) => a + (b - a) * ts;
-    const sh = Math.max(0, Math.min(1, (state.rainShadow == null ? 40 : state.rainShadow) / 100)), sd = 0.12 + 0.23 * sh;
+    const sh = Math.max(0, Math.min(1, (state.rainShadow == null ? 73 : state.rainShadow) / 100)), sd = 0.12 + 0.23 * sh;
     return {
       spawnInterval: [lerp(0.35, 0.004), lerp(0.9, 0.01)],
       spawnSize: [lerpS(38, 45), lerpS(75, 105)],
