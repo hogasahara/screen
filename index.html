@@ -800,17 +800,19 @@
   function rainOptions(v) {
     const t = rainCurve(v);
     const lerp = (a, b) => a + (b - a) * t;
+    // 雫の大きさは雨量 60 あたりで頭打ち。それより強い雨は数と速さで出す（大粒と太い筋にしない）
+    const ts = Math.min(1, t / 0.45), lerpS = (a, b) => a + (b - a) * ts;
     return {
-      spawnInterval: [lerp(0.35, 0.006), lerp(0.9, 0.015)],
-      spawnSize: [lerp(38, 70), lerp(75, 200)],
-      spawnLimit: Math.round(lerp(250, 4000)),
-      dropletsPerSeconds: Math.round(lerp(40, 1800)),
-      dropletSize: [lerp(6, 10), lerp(16, 30)],
+      spawnInterval: [lerp(0.35, 0.004), lerp(0.9, 0.01)],
+      spawnSize: [lerpS(38, 45), lerpS(75, 105)],
+      spawnLimit: Math.round(lerp(250, 5000)),
+      dropletsPerSeconds: Math.round(lerp(40, 2500)),
+      dropletSize: [lerp(6, 8), lerp(16, 22)],
       slipRate: lerp(0.05, 0.75),
       evaporate: lerp(5, 1),
-      trailDropDensity: lerp(0.15, 0.5),
-      trailDropSize: [lerp(0.3, 0.45), lerp(0.5, 0.7)],
-      trailDistance: [lerp(20, 8), lerp(30, 14)],
+      trailDropDensity: 0.2,            // 筋の太さは既定のまま
+      trailDropSize: [0.3, 0.5],
+      trailDistance: [lerp(20, 8), lerp(30, 14)],   // 間隔だけ詰めて、細い筋が途切れないように
       xShifting: [0, lerp(0.02, 0.25)],
       // 霧は「無し」にすると合成が滴のマスクだけになるので、完全に透明な霧を置いて見た目だけ消す。
       // にじみ段階は設定で 0 か 1。0 のときは滴が背景に溶けやすいので、屈折と光を強めて滴を立たせる
