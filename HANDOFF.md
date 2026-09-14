@@ -154,9 +154,54 @@
 
 ### 保留・未実装
 - 水膜の揺らぎ層（ブラウザのフィルタで画面を歪ませる案）：本人の判断で保留
-- 雨音（Web Audio で合成 → 必要なら素材を重ねる案）：後回し
+- 雨音：素材の調査は済み（下の「雨音の素材調査」）。実装と本人の試聴はこれから
 - 雨のときに曇りや夜の写真へ寄せる語の連動：提案のみ
 - 実機での豪雨の負荷（上限5000・小粒2500/秒）は未確認。重ければ上限から落とす
+
+## 雨音の素材調査（2026-09-14）
+
+本人の要望は「窓越しの雨音を、雨の多寡に合わせて」。作成環境では音を聞けないので、**最終の選別は本人の耳**。
+候補集めはサブエージェントに任せ、表だけ受け取った（トークン節約のため、以後もこの形で）。
+
+### ライセンスの判定（リポジトリに同梱して GitHub Pages で公開する前提）
+| 出どころ | 判定 | 理由 |
+| --- | --- | --- |
+| Freesound の CC0 音源 | **可**。本命 | 再配布・改変・商用すべて可、表記不要。窓越しの実録音が豊富。プレビュー MP3（128kbps）の配信元 `cdn.freesound.org` は `Access-Control-Allow-Origin: *` を確認済みなので、同梱せず「その場で取る」も可能。本体（WAV）の取得はログインが要る |
+| Wikimedia Commons の PD / CC0 | 可。予備 | `Rain against the window.ogg`（PD、1:22、mono 128k、英国の海辺、風強め）、`Urban Street on a Rainy Afternoon.flac`（CC0、30分、91MB、街の雨）。`upload.wikimedia.org` は CORS 可、鍵不要。ほかの雨音は CC BY-SA が多い |
+| OpenGameArt「Rain (loopable)」Ylmir | 可 | CC0、窓で録った 25〜45 秒のループ 4 本、MP3/OGG。mono を疑似ステレオ化 |
+| OtoLogic | 表記すれば可 | CC BY 4.0。CC0 で足りなければ |
+| 効果音ラボ | **不可** | 商用・表記不要だが「ユーザーがダウンロード可能な状態で置く」ことと再配布を禁止。GitHub 上に置くこと自体が当たる |
+| Pixabay | 避ける | 単体での再配布を禁止。リポジトリに素材ファイルを置くのはグレー |
+| BBC Sound Effects（RemArc） | 不可 | 個人・教育・研究に限る。公開ページに置けない |
+| SFXMint | 避ける | CC0 だが AI 生成、10 秒前後でループの継ぎ目なし |
+| 魔王魂 | 避ける | 単品の再配布禁止、表記が要る |
+
+### Freesound CC0 の候補（すべて各ページでライセンスを確認済み。窓越しの室内録音、雷・声・車なし）
+| 強さ | id | 題名（作者） | 長さ | 元形式 | 備考 |
+| --- | --- | --- | --- | --- | --- |
+| 小 | 648529 | RAIN on glass window（nicoproson） | 2:54 | WAV 96k | **推し**。長くてループ向き |
+| 小 | 473555 | Light Rain Recorded from Inside a Shut Window 2（timothyd4y） | 0:58 | WAV 48k | |
+| 小 | 669486 | Rain on window (interior)（xkeril） | 0:58 | WAV 48k | 強弱の変化あり |
+| 小 | 333510 | January rain on a window（mmorgaine） | 0:45 | AIFF 48k | 天窓。短い |
+| 中 | 869851 | Rain_Hitting_Window_9（SignatureSoundsOrg） | 1:03 | WAV 44.1k | **推し**。同作者のパック「Rain Hitting Window」に姉妹音源 |
+| 中 | 574673 | Rain on window PEI summer 03（TRP） | 1:04 | WAV 48k | プリンス・エドワード島の夏の雨 |
+| 中 | 577305 | Rain, skylight window, interior, 2011（TRP） | 0:47 | WAV 48k | 詳細未取得 |
+| 中 | 428605 | Rain on Metal Window Ledge（Erbsland-Music） | 1:44 | AIFF 44.1k | 風と街の音がわずかに入ると説明にある。要試聴 |
+| 中 | 81819 | Rain on Window, Reverberant room（silencyo） | 0:49 | AIFF 48k | 撮影用の人工雨。避ける |
+| 大 | 587000 | Heavy rain outside window（FrostCP） | 1:00 | WAV 44.1k | **推し**。夜、5 本のマイク |
+| 大 | 672694 | Window heavy rain（Cinetony） | 2:33 | WAV 48k | 台所の窓。長い |
+| 大 | 577298 | Rain, heavy on skylight window, interior, 2011（TRP） | 1:37 | WAV 48k | 天窓 |
+| 大 | 243781 | rain against window 2（bastipictures） | 1:05 | MP3 320k | 小窓に強い雨 |
+| 大 | 855890 | Heavy rain from inside, closed window（Chris.sonido.peru） | 2:39 | WAV 48k | 末尾に椅子の音と説明にある |
+
+プレビュー URL の形は `https://cdn.freesound.org/previews/<id の先頭3桁>/<id>_<投稿者id>-hq.mp3`（例：`previews/648/648529_457982-hq.mp3`、3.8MB）。投稿者 id はサウンドページの HTML から取れる。
+TRP はトロントの録音家で、窓・天窓の CC0 シリーズが多い（715609、567108、575260、574861、717572、717555 なども）。
+
+### 実装の案（未着手）
+- 雨量（`state.rain`）に合わせて 小・中・大 の 3 本を Web Audio の gain でクロスフェード。ループの継ぎ目は頭と尻を 1〜2 秒重ねる
+- 音源の置き場は二択。(a) CC0 の本体を `rain/` に同梱（OGG/MP3 に圧縮、3 本で 5MB 前後。`rain/LICENSE` に出典を併記）。(b) Freesound のプレビュー URL をその場で取る（写真と同じ思想。鍵不要、CORS 可。ただし URL の形が変わる可能性と、128kbps の質）
+- 選別は本人の耳が要るので、設定に「雨音の候補を聴く」を作り、上の表の候補を並べて試聴・採用できるようにする（写真の「検索語の当たりを見る」と同じ発想）。採用した id を設定に残す
+- 音楽（本人のアルバム）と同時に鳴るので、雨音の音量つまみは別に持つ
 
 ## 検証の方法（作成環境でできること）
 
