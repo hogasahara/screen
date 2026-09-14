@@ -205,6 +205,9 @@
     <div class="row" style="margin-top:10px"><span>雨</span><span class="val" id="rainVal">なし</span></div>
     <input type="range" id="rainRange" min="0" max="100" step="1" value="0">
     <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
+    <div class="row" style="margin-top:10px"><span>雫の陰影</span><span class="val" id="rainShadowVal">40</span></div>
+    <input type="range" id="rainShadowRange" min="0" max="100" step="1" value="40">
+    <small>左は淡く明るい雫、右は影の濃い雫。</small>
     <label><input type="checkbox" id="rainBlur"> 窓の外を少しにじませる（雨のとき）</label>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
@@ -307,7 +310,7 @@
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
-    interval: 30, tint: 28, rain: 0, rainBlur: false, motion: true, caption: true, clock: true, debug: false,
+    interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 40, motion: true, caption: true, clock: true, debug: false,
   };
   function loadState() {
     try {
@@ -802,6 +805,7 @@
     const lerp = (a, b) => a + (b - a) * t;
     // 雫の大きさは雨量 60 あたりで頭打ち。それより強い雨は数と速さで出す（大粒と太い筋にしない）
     const ts = Math.min(1, t / 0.45), lerpS = (a, b) => a + (b - a) * ts;
+    const sh = Math.max(0, Math.min(1, (state.rainShadow == null ? 40 : state.rainShadow) / 100)), sd = 0.12 + 0.23 * sh;
     return {
       spawnInterval: [lerp(0.35, 0.004), lerp(0.9, 0.01)],
       spawnSize: [lerpS(38, 45), lerpS(75, 105)],
@@ -819,9 +823,10 @@
       mist: true, mistColor: [0, 0, 0, 0], mistTime: 1e9,
       backgroundBlurSteps: state.rainBlur ? 1 : 0, mistBlurStep: state.rainBlur ? 1 : 0,
       refractBase: state.rainBlur ? 0.4 : 0.55, refractScale: state.rainBlur ? 0.6 : 0.9,
-      raindropDiffuseLight: state.rainBlur ? [0.2, 0.2, 0.2] : [0.3, 0.3, 0.3],
-      raindropSpecularLight: state.rainBlur ? [0, 0, 0] : [0.25, 0.25, 0.25], raindropSpecularShininess: 128,
-      raindropShadowOffset: state.rainBlur ? 0.8 : 1.0,
+      // 雫の陰影：ライブラリは「光の当たり具合 − 影の強さ」を滴の色に足す。影の強さが高いほど滴が一様に暗くなる
+      raindropDiffuseLight: [sd, sd, sd],
+      raindropShadowOffset: 0.3 + 0.7 * sh,
+      raindropSpecularLight: [0.25, 0.25, 0.25], raindropSpecularShininess: 128,
     };
   }
   function rainShade(v) { $('#rainShade').style.opacity = v > 0 ? (0.22 * Math.max(0, Math.min(1, (v - 1) / 99))).toFixed(3) : '0'; }   // 雨雲の下の暗さ
@@ -972,6 +977,7 @@
     $('#flickrKey').value = state.flickrKey;
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
     $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain; $('#rainBlur').checked = !!state.rainBlur;
+    $('#rainShadowRange').value = state.rainShadow; $('#rainShadowVal').textContent = state.rainShadow;
     $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
   }
   syncForm(); applyView(); updateFavUI();
@@ -990,6 +996,7 @@
   $('#interval').addEventListener('input', () => { state.interval = +$('#interval').value; applyView(); saveState(); });
   $('#tintRange').addEventListener('input', () => { state.tint = +$('#tintRange').value; applyView(); saveState(); });
   $('#rainBlur').addEventListener('change', () => { state.rainBlur = $('#rainBlur').checked; saveState(); if (state.rain > 0) applyRain(); });
+  $('#rainShadowRange').addEventListener('input', () => { state.rainShadow = +$('#rainShadowRange').value; $('#rainShadowVal').textContent = state.rainShadow; saveState(); if (rainFx) Object.assign(rainFx.options, rainOptions(state.rain)); });
   let rainInputTimer = null;
   $('#rainRange').addEventListener('input', () => { state.rain = +$('#rainRange').value; $('#rainVal').textContent = rainLevelName(state.rain); saveState(); clearTimeout(rainInputTimer); rainInputTimer = setTimeout(applyRain, 150); });
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
