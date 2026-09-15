@@ -94,7 +94,8 @@
 - 語ごと均等に出すと踏切のように視覚的に強い被写体が目立つ。ヒット率で傾斜をつけるのは危うい（一般的な語ほど Unsplash 的なきれいな絵に寄る）。主題と差し込みの重み `w` で編集する。長い目ではお気に入りの蓄積で語と写真家を評価するのが本筋。Unsplash には写真家単位・コレクション単位の取得もある（未実装）
 - 使用回数順（`gsrsort=incoming_links_desc`）は記事に載せやすい記録写真が上に来るので審美性とは無関係
 - 日本の Commons 語は、シリーズで上げている投稿者の語（`danchi`、`japan residential street`、`"street view" fukuoka`、`japan port town street`、`japan level crossing street`、`incategory:"Snack bars in Japan"`）
-- **Unsplash の新しい語の当たりはまだ本人の目で見ていない**。「検索語の当たりを見る」で確かめてもらうところで止まっている（雨の作業が先になった）
+- マルタ島（2026-09-15 に API で確認）：Commons の認定画像はマルタ全体で約550枚のひとつのプール（Diego Delso の 2021 年 8 月の連作と BW の 2011 年連作が大半）。`malta village` `malta street` `malta coast` `malta boats` はどれも品質画像 544〜585 件で、一般語は絞り込みに効いていない。効くのは地名：`gozo village`（品質 102、田園と集落の眺め）、`valletta`（71、街路）、`mdina`（45）、`marsaxlokk`（34、漁港）、`malta coast town`（16、スリーマの色つき出窓）、`grand harbour malta`（10、港と三姉妹都市）。`malta village` はポパイ村（映画のセットの遊園地）と語学学校の宿泊施設が上位に来るので使わない。`malta harbour` は認定に水中生物が多い。`malta church dome` はモスタのドームばかり。同じ写真家・同じ場所名の上限が連作をほぐす前提
+- **Unsplash の新しい語の当たりはまだ本人の目で見ていない**（マルタ島も含む）。「検索語の当たりを見る」で確かめてもらうところで止まっている（雨の作業が先になった）
 
 ## 雨の窓ガラス（演出）
 
