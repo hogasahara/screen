@@ -344,7 +344,8 @@
     } catch (e) {}
   }
   function saveState() {
-    try { history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(JSON.stringify(state))))); } catch (e) {}
+    // window. を付けること。この中の history は写真の履歴の Map で、素の history.replaceState は配列に当たって失敗し、設定が URL に残らなかった
+    try { window.history.replaceState(null, '', '#' + btoa(unescape(encodeURIComponent(JSON.stringify(state))))); } catch (e) {}
   }
   loadState();
   if (!SOURCE_NAMES[state.source]) state.source = 'commons';
