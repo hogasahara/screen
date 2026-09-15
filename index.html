@@ -116,6 +116,13 @@
   #sheet .cell.fav img { border-color: var(--amber); }
   #sheet .cell .mark { position: absolute; top: 4px; right: 6px; color: var(--amber); text-shadow: 0 0 6px #000; }
   #sheet .cell small { display: block; font-size: 10px; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  #sheet .snd { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(239,233,220,0.08); font-size: 13px; }
+  #sheet .snd.on { color: var(--amber); }
+  #sheet .snd .info { flex: 1; min-width: 0; }
+  #sheet .snd .info a { color: inherit; text-decoration: none; border-bottom: 1px dotted rgba(239,233,220,0.35); }
+  #sheet .snd .info small { display: block; font-size: 11px; color: var(--mist); margin-top: 2px; }
+  #sheet .snd button { font: inherit; font-size: 13px; color: var(--paper); background: transparent; border: 1px solid rgba(239,233,220,0.3); padding: 5px 12px; cursor: pointer; flex: 0 0 auto; }
+  #sheet .snd button.on { border-color: var(--amber); color: var(--amber); }
 
   @media (max-width: 640px) {
     #caption { max-width: 88vw; bottom: 16vh; }
@@ -210,6 +217,10 @@
     <div class="row" style="margin-top:10px"><span>雨</span><span class="val" id="rainVal">なし</span></div>
     <input type="range" id="rainRange" min="0" max="100" step="1" value="0">
     <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
+    <div class="row" style="margin-top:10px"><span>雨音</span><span class="val" id="rainVolVal">50</span></div>
+    <input type="range" id="rainVolRange" min="0" max="100" step="1" value="50">
+    <small id="rainSoundNote">雨のとき、窓越しの雨音を重ねます。左端で無音。</small>
+    <button class="file" id="btnRainSounds" type="button">雨音の候補を聴く</button>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
@@ -335,6 +346,7 @@
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
     interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, debug: false,
+    rainVol: 50, rainSounds: { light: 648529, mid: 869851, heavy: 587000 },   // 雨音の音量と、段階ごとに採用した Freesound の id
   };
   function loadState() {
     try {
@@ -349,6 +361,7 @@
   }
   loadState();
   if (!SOURCE_NAMES[state.source]) state.source = 'commons';
+  if (!state.rainSounds || typeof state.rainSounds !== 'object') state.rainSounds = { light: 648529, mid: 869851, heavy: 587000 };
 
   // ---------- DOM ----------
   const $ = (s) => document.querySelector(s);
@@ -798,9 +811,140 @@
     if (isApiSource(state.source)) for (const f of feeds) for (const p of f.cache.items) admit(f, p);
     updateStatus();
   }
-  function closeSheet() { sheet.classList.remove('open'); }
+  function closeSheet() { sheet.classList.remove('open'); stopPreview(); }
   $('#btnSheet').addEventListener('click', () => { togglePanel(false); openSheet(); });
   $('#btnSheetClose').addEventListener('click', closeSheet);
+
+  // ---------- 雨音 ----------
+  // 窓越しの雨の実録音（Freesound、すべて CC0）。小雨・雨〜本降り・豪雨の 3 本を雨量に合わせて重ねる。
+  // 推しの 3 本は rain/sounds/ に同梱（プレビュー品質の MP3、128kbps）。ほかの候補は Freesound のプレビューをその場で取る（CORS 可）。
+  // 候補と出典は rain/sounds/README.md にも書いてある。
+  const RAIN_SOUNDS = [
+    { id: 648529, user: 457982,   tier: 'light', name: 'RAIN on glass window', author: 'nicoproson', dur: '2:54', note: 'ガラス窓越し。長い', bundled: true },
+    { id: 473555, user: 288104,   tier: 'light', name: 'Light Rain Recorded from Inside a Shut Window 2', author: 'timothyd4y', dur: '0:58' },
+    { id: 669486, user: 13504080, tier: 'light', name: 'Rain on window (interior)', author: 'xkeril', dur: '0:58', note: '強弱の変化あり' },
+    { id: 333510, user: 5887515,  tier: 'light', name: 'January rain on a window', author: 'mmorgaine', dur: '0:45', note: '天窓。短い' },
+    { id: 869851, user: 19205925, tier: 'mid',   name: 'Rain_Hitting_Window_9', author: 'SignatureSoundsOrg', dur: '1:03', bundled: true },
+    { id: 574673, user: 97550,    tier: 'mid',   name: 'Rain on window PEI summer 03', author: 'TRP', dur: '1:04', note: 'プリンス・エドワード島の夏' },
+    { id: 577305, user: 97550,    tier: 'mid',   name: 'Rain, skylight window, interior, 2011', author: 'TRP', dur: '0:47', note: '天窓' },
+    { id: 428605, user: 522747,   tier: 'mid',   name: 'Rain on Metal Window Ledge', author: 'Erbsland-Music', dur: '1:44', note: '風と街の音がわずかに' },
+    { id: 587000, user: 4908420,  tier: 'heavy', name: 'Heavy rain outside window', author: 'FrostCP', dur: '1:00', note: '夜', bundled: true },
+    { id: 672694, user: 5985747,  tier: 'heavy', name: 'Window heavy rain', author: 'Cinetony', dur: '2:33', note: '台所の窓。長い' },
+    { id: 577298, user: 97550,    tier: 'heavy', name: 'Rain, heavy on skylight window, interior, 2011', author: 'TRP', dur: '1:37', note: '天窓' },
+    { id: 243781, user: 997601,   tier: 'heavy', name: 'rain against window 2', author: 'bastipictures', dur: '1:05', note: '小窓に強い雨' },
+  ];
+  const RAIN_TIERS = [['light', '小雨'], ['mid', '雨〜本降り'], ['heavy', '豪雨']];
+  function rainSoundOf(id) { return RAIN_SOUNDS.find((x) => x.id === id); }
+  function rainSoundUrl(x) { return x.bundled ? `rain/sounds/${x.id}.mp3` : `https://cdn.freesound.org/previews/${String(x.id).slice(0, 3)}/${x.id}_${x.user}-hq.mp3`; }
+  let actx = null, rainMaster = null, rainDuck = null;
+  const rainVoices = {}, rainBufs = new Map();
+  function ensureAudio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      rainDuck = actx.createGain(); rainDuck.connect(actx.destination);          // 試聴のあいだ本雨音を下げる
+      rainMaster = actx.createGain(); rainMaster.gain.value = 0; rainMaster.connect(rainDuck);
+    }
+    if (actx.state === 'suspended') {
+      actx.resume().catch(() => {});
+      if (!ensureAudio.armed) {   // 操作なしでは鳴らせない端末向けに、最初の操作で起こす
+        ensureAudio.armed = true;
+        const kick = () => { if (actx) actx.resume().catch(() => {}); };
+        window.addEventListener('pointerdown', kick, { once: true, capture: true });
+        window.addEventListener('keydown', kick, { once: true, capture: true });
+      }
+    }
+    return actx;
+  }
+  function rainBuffer(x) {
+    if (rainBufs.has(x.id)) return rainBufs.get(x.id);
+    const pr = (async () => {
+      const r = await fetch(rainSoundUrl(x));
+      if (!r.ok) throw new Error('sound ' + r.status);
+      return await actx.decodeAudioData(await r.arrayBuffer());
+    })();
+    rainBufs.set(x.id, pr);
+    pr.catch(() => rainBufs.delete(x.id));
+    return pr;
+  }
+  const ramp = (x, a, b) => Math.max(0, Math.min(1, (x - a) / (b - a)));
+  // 雨量 → 3 本の混ぜ具合。小雨は 25 まで単独で 55 で消える。中は 15〜40 で立ち上がり 65〜90 で引く。豪雨は 45〜80 で立ち上がる
+  function rainMix(v) { const t = v / 100; return { light: 1 - ramp(t, 0.25, 0.55), mid: Math.min(ramp(t, 0.15, 0.4), 1 - ramp(t, 0.65, 0.9)), heavy: ramp(t, 0.45, 0.8) }; }
+  // 全体の音量。つまみは二乗で効かせ（下のほうを細かく）、小雨は少し静かに
+  function rainMasterLevel() { const vol = (state.rainVol == null ? 50 : state.rainVol) / 100; return vol * vol * 0.8 * (0.55 + 0.45 * state.rain / 100); }
+  function fadeGain(g, to, sec) { const now = actx.currentTime; g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(to, now + sec); }
+  function dropVoice(v, sec) { if (!v || !v.src) return; fadeGain(v.gain.gain, 0, sec); const src = v.src; setTimeout(() => { try { src.stop(); } catch (e) {} }, sec * 1000 + 100); }
+  async function updateRainSound() {
+    if (state.rain <= 0 || !(state.rainVol > 0)) { stopRainSound(); return; }
+    if (!ensureAudio()) return;
+    fadeGain(rainMaster.gain, rainMasterLevel(), 0.8);
+    const mix = rainMix(state.rain);
+    for (const [tier] of RAIN_TIERS) {
+      const want = mix[tier] > 0.001 ? rainSoundOf(state.rainSounds[tier]) : null;
+      const cur = rainVoices[tier];
+      if (cur && (!want || cur.id !== want.id)) { dropVoice(cur, 1.5); rainVoices[tier] = null; }
+      if (!want) continue;
+      if (rainVoices[tier] && rainVoices[tier].id === want.id) { if (rainVoices[tier].gain) fadeGain(rainVoices[tier].gain.gain, mix[tier], 0.8); continue; }
+      const voice = { id: want.id, tier, src: null, gain: null };
+      rainVoices[tier] = voice;   // 取りに行っているあいだの目印
+      let buf;
+      try { buf = await rainBuffer(want); }
+      catch (e) { if (rainVoices[tier] === voice) rainVoices[tier] = null; $('#rainSoundNote').textContent = `雨音を取りに行けませんでした（${want.name}）。`; continue; }
+      if (rainVoices[tier] !== voice || state.rain <= 0) continue;   // 待っているあいだに変わった
+      const src = actx.createBufferSource(); src.buffer = buf; src.loop = true;
+      src.loopStart = Math.min(0.05, buf.duration / 4); src.loopEnd = Math.max(src.loopStart + 0.1, buf.duration - 0.05);   // 端の無音を避ける
+      const g = actx.createGain(); g.gain.value = 0; src.connect(g); g.connect(rainMaster);
+      src.start(0, Math.random() * buf.duration * 0.8);   // 3 本が同じ頭から始まらないように
+      voice.src = src; voice.gain = g;
+      fadeGain(g.gain, rainMix(state.rain)[tier], 2.5);
+    }
+  }
+  function stopRainSound() {
+    for (const [tier] of RAIN_TIERS) { dropVoice(rainVoices[tier], 1.5); rainVoices[tier] = null; }
+  }
+  // 候補を聴いて採用する（写真の「検索語の当たりを見る」と同じ画面を使う）
+  const previewAudio = new Audio(); previewAudio.preload = 'none';
+  let previewBtn = null;
+  function stopPreview() {
+    previewAudio.pause(); previewAudio.removeAttribute('src'); previewAudio.load();
+    if (previewBtn) previewBtn.textContent = '▶'; previewBtn = null;
+    if (rainDuck) fadeGain(rainDuck.gain, 1, 0.5);
+  }
+  previewAudio.addEventListener('ended', stopPreview);
+  function openRainSheet() {
+    sheet.classList.add('open');
+    const body = $('#sheetBody'); body.textContent = '';
+    $('#sheetLead').textContent = '窓越しの雨の実録音（Freesound、すべて CC0）。▶ で聴いて、段階ごとに一本を採用します。採用は URL の設定に残ります。';
+    for (const [tier, label] of RAIN_TIERS) {
+      const box = document.createElement('div'); box.className = 'term';
+      const h = document.createElement('h2'); h.textContent = label; box.appendChild(h);
+      const rows = [];
+      for (const x of RAIN_SOUNDS.filter((y) => y.tier === tier)) {
+        const row = document.createElement('div'); row.className = 'snd';
+        const play = document.createElement('button'); play.type = 'button'; play.textContent = '▶'; play.setAttribute('aria-label', '試聴');
+        const info = document.createElement('span'); info.className = 'info';
+        const a = document.createElement('a'); a.href = `https://freesound.org/s/${x.id}/`; a.target = '_blank'; a.rel = 'noopener'; a.textContent = x.name;
+        const meta = document.createElement('small'); meta.textContent = [x.author, x.dur, x.note, x.bundled ? '同梱' : 'Freesound から'].filter(Boolean).join('　');
+        info.appendChild(a); info.appendChild(meta);
+        const use = document.createElement('button'); use.type = 'button';
+        const paint = () => { const on = state.rainSounds[tier] === x.id; use.textContent = on ? '採用中' : '採用'; use.classList.toggle('on', on); row.classList.toggle('on', on); };
+        rows.push(paint); paint();
+        play.addEventListener('click', () => {
+          if (previewBtn === play) { stopPreview(); return; }
+          stopPreview();
+          previewBtn = play; play.textContent = '■';
+          if (rainDuck) fadeGain(rainDuck.gain, 0.15, 0.5);
+          previewAudio.src = rainSoundUrl(x);
+          previewAudio.play().catch(() => { stopPreview(); meta.textContent += '　（再生できませんでした）'; });
+        });
+        use.addEventListener('click', () => { state.rainSounds = { ...state.rainSounds, [tier]: x.id }; saveState(); rows.forEach((f) => f()); if (state.rain > 0) updateRainSound(); });
+        row.appendChild(play); row.appendChild(info); row.appendChild(use); box.appendChild(row);
+      }
+      body.appendChild(box);
+    }
+  }
+  $('#btnRainSounds').addEventListener('click', () => { togglePanel(false); openRainSheet(); });
 
   // ---------- 雨の窓ガラス ----------
   // raindrop-fx（SardineFish、MIT、rain/raindrop-fx.js）に写真を背景として渡し、滴と筋と霧を描いてもらう。
@@ -899,6 +1043,7 @@
     let Lib;
     try { Lib = await loadRainLib(); } catch (e) { $('#rainNote').textContent = '雨の部品を読み込めませんでした。'; return; }
     if (state.rain <= 0) return;   // 読み込んでいる間に戻された
+    updateRainSound();
     if (!rainFx) {
       sizeRainCanvas();
       rainBgCtx.fillStyle = '#0a1224'; rainBgCtx.fillRect(0, 0, rainBg.width, rainBg.height);
@@ -931,10 +1076,12 @@
     rainPrevImg = rainCurImg = null;
     rainEl.classList.remove('on'); document.body.classList.remove('raining');
     rainShade(0);
+    stopRainSound();
   }
   window.addEventListener('resize', () => { if (rainFx) { sizeRainCanvas(); rainFadeStart = 0; rainFadeStep(); } });
   // 調整用：検索語の表示がオンのとき、雨まわりの内部状態を覗けるようにしておく
-  window.__aono = () => state.debug ? { rain: state.rain, fx: !!rainFx, busy: rainBusy, cur: !!rainCurImg, prev: !!rainPrevImg, curImg: !!currentImg, photo: currentPhoto && currentPhoto.url,
+  window.__aono = () => state.debug ? { rain: state.rain,
+    sound: { ctx: actx && actx.state, master: rainMaster && rainMaster.gain.value, voices: Object.fromEntries(RAIN_TIERS.map(([t]) => [t, rainVoices[t] ? { id: rainVoices[t].id, gain: rainVoices[t].gain ? rainVoices[t].gain.gain.value : null } : null])) }, fx: !!rainFx, busy: rainBusy, cur: !!rainCurImg, prev: !!rainPrevImg, curImg: !!currentImg, photo: currentPhoto && currentPhoto.url,
     bg: rainBg && [rainBg.width, rainBg.height], bgData: rainBg && rainBg.toDataURL('image/jpeg', 0.5), fadeT: rainFadeStart && Math.round(performance.now() - rainFadeStart) } : null;
 
   // ---------- 時計 ----------
@@ -1003,6 +1150,7 @@
     document.querySelectorAll('input[name=theme]').forEach((c) => { c.checked = state.themes.includes(c.value); });
     $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain; $('#rainBlur').checked = !!state.rainBlur;
     $('#rainShadowRange').value = state.rainShadow; $('#rainShadowVal').textContent = state.rainShadow;
+    $('#rainVolRange').value = state.rainVol; $('#rainVolVal').textContent = state.rainVol;
     $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
   }
   syncForm(); applyView(); updateFavUI();
@@ -1024,6 +1172,7 @@
   $('#rainShadowRange').addEventListener('input', () => { state.rainShadow = +$('#rainShadowRange').value; $('#rainShadowVal').textContent = state.rainShadow; saveState(); if (rainFx) Object.assign(rainFx.options, rainOptions(state.rain)); });
   let rainInputTimer = null;
   $('#rainRange').addEventListener('input', () => { state.rain = +$('#rainRange').value; $('#rainVal').textContent = rainLevelName(state.rain); saveState(); clearTimeout(rainInputTimer); rainInputTimer = setTimeout(applyRain, 150); });
+  $('#rainVolRange').addEventListener('input', () => { state.rainVol = +$('#rainVolRange').value; $('#rainVolVal').textContent = state.rainVol; saveState(); updateRainSound(); });
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
   $('#showCaption').addEventListener('change', () => { state.caption = $('#showCaption').checked; applyView(); saveState(); });
   $('#showClock').addEventListener('change', () => { state.clock = $('#showClock').checked; applyView(); saveState(); });

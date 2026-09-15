@@ -15,7 +15,8 @@
    - 日本の街：都会以外の日本の家並みや店
    - マルタ島：地中海の島。石灰岩の家並みと出窓、港と舟、集落と教会
 4. 気に入った一枚は `L` キーか「お気に入り」で登録。設定の「お気に入り」から JSON で書き出せます
-5. 「見せかた」の「雨」を右に動かすと、雨の日の窓ガラス越しに眺める演出になります（小雨から豪雨まで。`R` キーで段階的に切り替え）
+5. 「見せかた」の「雨」を右に動かすと、雨の日の窓ガラス越しに眺める演出になります（小雨から豪雨まで。`R` キーで段階的に切り替え）。
+   雨のときは窓越しの雨音も重なります。「雨音」で音量を、「雨音の候補を聴く」で小雨・雨・豪雨それぞれの音を選べます
 6. 「音楽」の「曲を選ぶ」で手元の曲を選ぶ（選んだ順に繰り返す）
 7. 自分の写真で眺めたいときは「自分のフォルダ」の「写真を選ぶ」
 
@@ -62,7 +63,7 @@ Unsplash や Flickr の鍵も URL にだけ残るので、URL を人に渡すと
 ## 公開のしくみ
 
 `main` ブランチに push すると GitHub Actions（`.github/workflows/pages.yml`）が
-`index.html`、`manifest.json`、アイコン、雨の演出の `rain/` だけを集めて GitHub Pages に配置します。
+`index.html`、`manifest.json`、アイコン、雨の演出と雨音の `rain/` だけを集めて GitHub Pages に配置します。
 初回だけ、リポジトリの Settings → Pages → Build and deployment → Source を **GitHub Actions** にしてください。
 
 ## 手元で開く
@@ -70,9 +71,12 @@ Unsplash や Flickr の鍵も URL にだけ残るので、URL を人に渡すと
 ビルドはいりません。`index.html` をブラウザで開くだけで動きます。
 雨の演出は `rain/raindrop-fx.js`（[raindrop-fx](https://github.com/SardineFish/raindrop-fx)、MIT）を
 雨をオンにしたときだけ読み込みます。WebGL2 が使えるブラウザが必要です。
+雨音（`rain/sounds/`）は `file://` で開くと読み込めないので、手元で雨音まで試すときは
+`python3 -m http.server` などで配ってください。
 
 ## ライセンス
 
 コードは MIT License です。同梱の `rain/raindrop-fx.js` は SardineFish による MIT License（`rain/LICENSE`）。
+雨音（`rain/sounds/`）は Freesound の CC0（パブリックドメイン）の録音で、出どころは `rain/sounds/README.md` にあります。
 表示される写真はそれぞれの撮影者とライセンス（Wikimedia Commons は CC 系、Unsplash は Unsplash License）に従います。
 キャプションの撮影者名・ライセンス表示はそのためのものです。
