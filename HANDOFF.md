@@ -37,7 +37,7 @@
 | `index.html` | 本体。CSS・HTML・JS がすべて入った単一ファイル（約1100行） |
 | `manifest.json`, `icon.svg`, `icon-192.png`, `icon-512.png` | ホーム画面に追加すると全画面で起動する PWA 設定とアイコン |
 | `rain/raindrop-fx.js`, `rain/LICENSE`, `rain/README.md` | 雨の演出ライブラリ [raindrop-fx](https://github.com/SardineFish/raindrop-fx) 1.0.8 の同梱（MIT、SardineFish）。雨をオンにしたときだけ読み込む |
-| `rain/sounds/*.mp3`, `rain/sounds/README.md` | 窓越しの雨音 3 本（Freesound、CC0、プレビュー品質の MP3、計 6.6MB）と出どころ |
+| `rain/sounds/*.mp3`, `rain/sounds/README.md` | 屋外の雨音 3 本（Freesound、CC0、プレビュー品質の MP3、計 6.5MB）と出どころ |
 | `.github/workflows/pages.yml` | main への push で `index.html`・`manifest.json`・アイコン・`rain/`（ライブラリと雨音）を GitHub Pages に配置 |
 | `README.md` | 使いかた |
 | `HANDOFF.md` | この文書 |
@@ -163,12 +163,12 @@
 
 ## 雨音（2026-09-15 実装）
 
-本人の要望は「窓越しの雨音を、雨の多寡に合わせて」。作成環境では音を聞けないので、**最終の選別は本人の耳**。
+本人の要望は「雨音を、雨の多寡に合わせて」。**窓に当たる音ではなく、屋外のごく普通の雨音でよい**（2026-09-16 の本人の判断。最初は窓越しの室内録音で作り、違うと言われて選び直した）。作成環境では音を聞けないので、**最終の選別は本人の耳**。
 候補集めはサブエージェントに任せ、表だけ受け取った（トークン節約のため、以後もこの形で）。
 
 ### 仕組み（`index.html` の「雨音」）
 - `RAIN_SOUNDS`：候補の表（id、投稿者 id、段階 `light/mid/heavy`、題名、備考、`bundled`）。URL は同梱なら `rain/sounds/<id>.mp3`、そうでなければ Freesound のプレビュー `https://cdn.freesound.org/previews/<id先頭3桁>/<id>_<投稿者id>-hq.mp3`（CORS 可を確認済み）
-- `state.rainSounds = {light, mid, heavy}` に採用した id（既定 648529 / 869851 / 587000、同梱の 3 本）。`state.rainVol`（0〜100、既定 50）
+- `state.rainSounds = {light, mid, heavy}` に採用した id（既定 `RAIN_DEFAULT` = 502880 / 393728 / 512965、同梱の 3 本）。候補に無い id が設定に残っていたら既定に戻す。`state.rainVol`（0〜100、既定 50）
 - Web Audio。`AudioBufferSourceNode` を `loop` で回す（`loopStart` 0.05 秒、`loopEnd` は終わりの 0.05 秒手前。MP3 の端の無音を避ける）。3 本を `rainMix(v)` の比率で重ねる：小雨は雨量 25 まで単独で 55 で消える、中は 15〜40 で立ち上がり 65〜90 で引く、豪雨は 45〜80 で立ち上がる。開始位置はランダム（3 本が同じ頭から始まらないように）
 - 全体の音量 `rainMasterLevel()` = (つまみ/100)² × 0.8 × (0.55 + 0.45 × 雨量/100)。つまみは二乗で効かせて下のほうを細かく
 - 切り替えは `fadeGain`（線形ランプ。立ち上がり 2.5 秒、雨量の変化 0.8 秒、消えるとき 1.5 秒）。`applyRain()` が雨量のたびに `updateRainSound()` を呼び、`stopRain()` が `stopRainSound()` を呼ぶ
@@ -187,7 +187,7 @@
 ### ライセンスの判定（リポジトリに同梱して GitHub Pages で公開する前提）
 | 出どころ | 判定 | 理由 |
 | --- | --- | --- |
-| Freesound の CC0 音源 | **可**。本命 | 再配布・改変・商用すべて可、表記不要。窓越しの実録音が豊富。プレビュー MP3（128kbps）の配信元 `cdn.freesound.org` は `Access-Control-Allow-Origin: *` を確認済みなので、同梱せず「その場で取る」も可能。本体（WAV）の取得はログインが要る |
+| Freesound の CC0 音源 | **可**。本命 | 再配布・改変・商用すべて可、表記不要。雨の実録音が豊富。プレビュー MP3（128kbps）の配信元 `cdn.freesound.org` は `Access-Control-Allow-Origin: *` を確認済みなので、同梱せず「その場で取る」も可能。本体（WAV）の取得はログインが要る |
 | Wikimedia Commons の PD / CC0 | 可。予備 | `Rain against the window.ogg`（PD、1:22、mono 128k、英国の海辺、風強め）、`Urban Street on a Rainy Afternoon.flac`（CC0、30分、91MB、街の雨）。`upload.wikimedia.org` は CORS 可、鍵不要。ほかの雨音は CC BY-SA が多い |
 | OpenGameArt「Rain (loopable)」Ylmir | 可 | CC0、窓で録った 25〜45 秒のループ 4 本、MP3/OGG。mono を疑似ステレオ化 |
 | OtoLogic | 表記すれば可 | CC BY 4.0。CC0 で足りなければ |
@@ -197,26 +197,28 @@
 | SFXMint | 避ける | CC0 だが AI 生成、10 秒前後でループの継ぎ目なし |
 | 魔王魂 | 避ける | 単品の再配布禁止、表記が要る |
 
-### Freesound CC0 の候補（すべて各ページでライセンスを確認済み。窓越しの室内録音、雷・声・車なし）
+### Freesound CC0 の候補（屋外の雨。2026-09-16 に選び直し。すべて各ページでライセンスを確認済み）
+条件：屋外録音、60 秒以上、雷・声・車・目立つ鳥なし、実録音。窓・屋根・テント・傘・車内など何かを叩く音が主役のものは除外。
 | 強さ | id | 題名（作者） | 長さ | 元形式 | 備考 |
 | --- | --- | --- | --- | --- | --- |
-| 小 | 648529 | RAIN on glass window（nicoproson） | 2:54 | WAV 96k | **推し**。長くてループ向き |
-| 小 | 473555 | Light Rain Recorded from Inside a Shut Window 2（timothyd4y） | 0:58 | WAV 48k | |
-| 小 | 669486 | Rain on window (interior)（xkeril） | 0:58 | WAV 48k | 強弱の変化あり |
-| 小 | 333510 | January rain on a window（mmorgaine） | 0:45 | AIFF 48k | 天窓。短い |
-| 中 | 869851 | Rain_Hitting_Window_9（SignatureSoundsOrg） | 1:03 | WAV 44.1k | **推し**。同作者のパック「Rain Hitting Window」に姉妹音源 |
-| 中 | 574673 | Rain on window PEI summer 03（TRP） | 1:04 | WAV 48k | プリンス・エドワード島の夏の雨 |
-| 中 | 577305 | Rain, skylight window, interior, 2011（TRP） | 0:47 | WAV 48k | 詳細未取得 |
-| 中 | 428605 | Rain on Metal Window Ledge（Erbsland-Music） | 1:44 | AIFF 44.1k | 風と街の音がわずかに入ると説明にある。要試聴 |
-| 中 | 81819 | Rain on Window, Reverberant room（silencyo） | 0:49 | AIFF 48k | 撮影用の人工雨。避ける |
-| 大 | 587000 | Heavy rain outside window（FrostCP） | 1:00 | WAV 44.1k | **推し**。夜、5 本のマイク |
-| 大 | 672694 | Window heavy rain（Cinetony） | 2:33 | WAV 48k | 台所の窓。長い |
-| 大 | 577298 | Rain, heavy on skylight window, interior, 2011（TRP） | 1:37 | WAV 48k | 天窓 |
-| 大 | 243781 | rain against window 2（bastipictures） | 1:05 | MP3 320k | 小窓に強い雨 |
-| 大 | 855890 | Heavy rain from inside, closed window（Chris.sonido.peru） | 2:39 | WAV 48k | 末尾に椅子の音と説明にある |
+| 小 | 502880 | Outdoors_Day_LightRain_01（MrFossy） | 1:30 | WAV 96k | **同梱**。郊外の昼、いちばん澄んでいる |
+| 小 | 486423 | rain in my garden（zoomology） | 4:29 | WAV 44.1k | 庭の草木。長い。ときどき車や飛行機 |
+| 小 | 182525 | Light Rain in Pines（kvgarlic） | 2:21 | WAV 44.1k | 松林。ときどき鳥の声 |
+| 小 | 517316 | Light Outdoor Rain（BurghRecords） | 1:26 | WAV 96k | エディンバラ。タグに thunder があり雷が入るかも |
+| 中 | 393728 | Steady rain in Zeist（hz37） | 1:15 | WAV 48k | **同梱**。一定の雨で澄んでいる |
+| 中 | 751684 | Rain Ambience（Bryce835） | 5:13 | M4A 44.1k | 長い。途中で強くなる |
+| 中 | 405630 | the end of a rainstorm（Anthousai） | 3:47 | WAV 96k | 強い雨から弱まっていく |
+| 中 | 734972 | Rain - Courtyard（Vrymaa） | 1:11 | WAV 48k | 石畳の中庭。終わりに雨樋の音が近づく |
+| 大 | 512965 | Heavy rain Larnaca（ratdh9） | 1:48 | WAV 48k | **同梱**。澄んだ屋外の豪雨 |
+| 大 | 616446 | Heavy rain pouring on concrete（AdrianoAnjos） | 1:50 | WAV 44.1k | コンクリート。少し水の流れ |
+| 大 | 717843 | Rain heavy, concrete, trees, Toronto 7am（TRP） | 1:56 | MP3 48k | |
+| 大 | 705730 | Heavy rainfall（mudflea2） | 9:05 | WAV 96k | 木々の中。とても長いが、缶に当たる音や猫犬のタグがあり要試聴 |
+
+エージェントが外したもの：830377（車の通過が明確）、590977（屋根の音）、847111（雨上がりの鳥と子供の声）。
+
+最初に集めた**窓越しの室内録音**（不採用。記録として id だけ）：小 648529・473555・669486・333510、中 869851・574673・577305・428605、大 587000・672694・577298・243781。TRP（97550）はトロントの録音家で窓・天窓・屋外の CC0 が多い。
 
 プレビュー URL の形は `https://cdn.freesound.org/previews/<id の先頭3桁>/<id>_<投稿者id>-hq.mp3`（例：`previews/648/648529_457982-hq.mp3`、3.8MB）。投稿者 id はサウンドページの HTML から取れる。
-TRP はトロントの録音家で、窓・天窓の CC0 シリーズが多い（715609、567108、575260、574861、717572、717555 なども）。
 
 ### 置き場の判断
 同梱とその場取得の両方にした。推しの 3 本は同梱（本体の WAV は Freesound のログインが要るので、CC0 のプレビュー MP3 128kbps をそのまま置いた。雨音には十分）。残りの候補は Freesound のプレビューをその場で取る。URL の形が変わったら候補側だけが鳴らなくなる（同梱は影響なし）。

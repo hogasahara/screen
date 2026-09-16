@@ -5,4 +5,4 @@
 
 `index.html` は設定の「雨」を 0 より大きくしたときだけこのファイルを読み込む。WebGL2 が必要。
 
-`sounds/` には窓越しの雨の実録音（Freesound、CC0）が 3 本入っている。出どころは `sounds/README.md`。
+`sounds/` には屋外の雨の実録音（Freesound、CC0）が 3 本入っている。出どころは `sounds/README.md`。

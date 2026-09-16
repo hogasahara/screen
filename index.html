@@ -219,7 +219,7 @@
     <small id="rainNote">窓ガラス越しに眺めます。右へ行くほど強い雨に。<kbd>R</kbd> で段階的に切り替え。</small>
     <div class="row" style="margin-top:10px"><span>雨音</span><span class="val" id="rainVolVal">50</span></div>
     <input type="range" id="rainVolRange" min="0" max="100" step="1" value="50">
-    <small id="rainSoundNote">雨のとき、窓越しの雨音を重ねます。左端で無音。</small>
+    <small id="rainSoundNote">雨のとき、屋外の雨音を重ねます。左端で無音。</small>
     <button class="file" id="btnRainSounds" type="button">雨音の候補を聴く</button>
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
@@ -346,7 +346,7 @@
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
     interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, debug: false,
-    rainVol: 50, rainSounds: { light: 648529, mid: 869851, heavy: 587000 },   // 雨音の音量と、段階ごとに採用した Freesound の id
+    rainVol: 50, rainSounds: { light: 502880, mid: 393728, heavy: 512965 },   // 雨音の音量と、段階ごとに採用した Freesound の id
   };
   function loadState() {
     try {
@@ -361,7 +361,7 @@
   }
   loadState();
   if (!SOURCE_NAMES[state.source]) state.source = 'commons';
-  if (!state.rainSounds || typeof state.rainSounds !== 'object') state.rainSounds = { light: 648529, mid: 869851, heavy: 587000 };
+  if (!state.rainSounds || typeof state.rainSounds !== 'object') state.rainSounds = {};   // 中身は RAIN_SOUNDS の定義のあとで確かめる
 
   // ---------- DOM ----------
   const $ = (s) => document.querySelector(s);
@@ -816,25 +816,28 @@
   $('#btnSheetClose').addEventListener('click', closeSheet);
 
   // ---------- 雨音 ----------
-  // 窓越しの雨の実録音（Freesound、すべて CC0）。小雨・雨〜本降り・豪雨の 3 本を雨量に合わせて重ねる。
+  // 屋外の雨の実録音（Freesound、すべて CC0）。小雨・雨〜本降り・豪雨の 3 本を雨量に合わせて重ねる。
+  // 本人の判断（2026-09-16）：窓に当たる音ではなく、屋外のごく普通の雨音でよい。屋根・テント・傘など何かを叩く音が主役のものは避ける。
   // 推しの 3 本は rain/sounds/ に同梱（プレビュー品質の MP3、128kbps）。ほかの候補は Freesound のプレビューをその場で取る（CORS 可）。
   // 候補と出典は rain/sounds/README.md にも書いてある。
   const RAIN_SOUNDS = [
-    { id: 648529, user: 457982,   tier: 'light', name: 'RAIN on glass window', author: 'nicoproson', dur: '2:54', note: 'ガラス窓越し。長い', bundled: true },
-    { id: 473555, user: 288104,   tier: 'light', name: 'Light Rain Recorded from Inside a Shut Window 2', author: 'timothyd4y', dur: '0:58' },
-    { id: 669486, user: 13504080, tier: 'light', name: 'Rain on window (interior)', author: 'xkeril', dur: '0:58', note: '強弱の変化あり' },
-    { id: 333510, user: 5887515,  tier: 'light', name: 'January rain on a window', author: 'mmorgaine', dur: '0:45', note: '天窓。短い' },
-    { id: 869851, user: 19205925, tier: 'mid',   name: 'Rain_Hitting_Window_9', author: 'SignatureSoundsOrg', dur: '1:03', bundled: true },
-    { id: 574673, user: 97550,    tier: 'mid',   name: 'Rain on window PEI summer 03', author: 'TRP', dur: '1:04', note: 'プリンス・エドワード島の夏' },
-    { id: 577305, user: 97550,    tier: 'mid',   name: 'Rain, skylight window, interior, 2011', author: 'TRP', dur: '0:47', note: '天窓' },
-    { id: 428605, user: 522747,   tier: 'mid',   name: 'Rain on Metal Window Ledge', author: 'Erbsland-Music', dur: '1:44', note: '風と街の音がわずかに' },
-    { id: 587000, user: 4908420,  tier: 'heavy', name: 'Heavy rain outside window', author: 'FrostCP', dur: '1:00', note: '夜', bundled: true },
-    { id: 672694, user: 5985747,  tier: 'heavy', name: 'Window heavy rain', author: 'Cinetony', dur: '2:33', note: '台所の窓。長い' },
-    { id: 577298, user: 97550,    tier: 'heavy', name: 'Rain, heavy on skylight window, interior, 2011', author: 'TRP', dur: '1:37', note: '天窓' },
-    { id: 243781, user: 997601,   tier: 'heavy', name: 'rain against window 2', author: 'bastipictures', dur: '1:05', note: '小窓に強い雨' },
+    { id: 502880, user: 129727,   tier: 'light', name: 'Outdoors_Day_LightRain_01', author: 'MrFossy', dur: '1:30', note: '郊外の昼。澄んでいる', bundled: true },
+    { id: 486423, user: 3373603,  tier: 'light', name: 'rain in my garden', author: 'zoomology', dur: '4:29', note: '庭の木や草に降る雨。長い。ときどき車や飛行機' },
+    { id: 182525, user: 1050391,  tier: 'light', name: 'Light Rain in Pines', author: 'kvgarlic', dur: '2:21', note: '松林。ときどき鳥の声' },
+    { id: 517316, user: 7241289,  tier: 'light', name: 'Light Outdoor Rain', author: 'BurghRecords', dur: '1:26', note: 'エディンバラ。雷が入るかもしれない' },
+    { id: 393728, user: 123355,   tier: 'mid',   name: 'Steady rain in Zeist', author: 'hz37', dur: '1:15', note: '一定の雨。澄んでいる', bundled: true },
+    { id: 751684, user: 13973196, tier: 'mid',   name: 'Rain Ambience', author: 'Bryce835', dur: '5:13', note: 'オハイオ。長い。途中で強くなる' },
+    { id: 405630, user: 5923045,  tier: 'mid',   name: 'the end of a rainstorm', author: 'Anthousai', dur: '3:47', note: 'オレゴン。強い雨から弱まっていく' },
+    { id: 734972, user: 13973196, tier: 'mid',   name: 'Rain - Courtyard', author: 'Vrymaa', dur: '1:11', note: '石畳の中庭。終わりに雨樋の音' },
+    { id: 512965, user: 2008778,  tier: 'heavy', name: 'Heavy rain Larnaca', author: 'ratdh9', dur: '1:48', note: 'キプロス。澄んでいる', bundled: true },
+    { id: 616446, user: 6801313,  tier: 'heavy', name: 'Heavy rain pouring on concrete', author: 'AdrianoAnjos', dur: '1:50', note: 'コンクリートに降る豪雨。少し水の流れ' },
+    { id: 717843, user: 97550,    tier: 'heavy', name: 'Rain heavy, concrete, trees, Toronto 7am', author: 'TRP', dur: '1:56', note: 'トロントの朝' },
+    { id: 705730, user: 15236906, tier: 'heavy', name: 'Heavy rainfall', author: 'mudflea2', dur: '9:05', note: '木々の中。とても長い。缶に当たる音や動物の声が入るかもしれない' },
   ];
   const RAIN_TIERS = [['light', '小雨'], ['mid', '雨〜本降り'], ['heavy', '豪雨']];
+  const RAIN_DEFAULT = { light: 502880, mid: 393728, heavy: 512965 };   // 同梱の 3 本
   function rainSoundOf(id) { return RAIN_SOUNDS.find((x) => x.id === id); }
+  for (const [tier] of RAIN_TIERS) if (!rainSoundOf(state.rainSounds[tier])) state.rainSounds[tier] = RAIN_DEFAULT[tier];   // 古い設定の id は既定に戻す
   function rainSoundUrl(x) { return x.bundled ? `rain/sounds/${x.id}.mp3` : `https://cdn.freesound.org/previews/${String(x.id).slice(0, 3)}/${x.id}_${x.user}-hq.mp3`; }
   let actx = null, rainMaster = null, rainDuck = null;
   const rainVoices = {}, rainBufs = new Map();
@@ -915,7 +918,7 @@
   function openRainSheet() {
     sheet.classList.add('open');
     const body = $('#sheetBody'); body.textContent = '';
-    $('#sheetLead').textContent = '窓越しの雨の実録音（Freesound、すべて CC0）。▶ で聴いて、段階ごとに一本を採用します。採用は URL の設定に残ります。';
+    $('#sheetLead').textContent = '屋外の雨の実録音（Freesound、すべて CC0）。▶ で聴いて、段階ごとに一本を採用します。採用は URL の設定に残ります。';
     for (const [tier, label] of RAIN_TIERS) {
       const box = document.createElement('div'); box.className = 'term';
       const h = document.createElement('h2'); h.textContent = label; box.appendChild(h);
