@@ -203,7 +203,24 @@
 - 705730 Heavy rainfall：「柔らかい雨音と、そのほかのノイズ」
 - 393728 Steady rain in Zeist：「庭の葉に当たるような」
 つまり葉・草・水辺に降る粒の柔らかい雨。硬い面（コンクリート・屋根）を叩く音や一様なノイズ状の音は好みでない。小雨の候補には挙がらなかった。
-この方向で候補を追加探索している。既定（同梱）の見直しは追加候補が出そろってから。
+この方向で候補を 11 本追加した（下の表の「追加」）。候補シートでは各段階の先頭に気に入った 3 本（`fav`、♥ 印）を置いている。既定（同梱）の見直しは本人の指示で。
+
+### 追加候補（柔らかい雨。2026-09-16、すべて CC0 確認済み）
+エージェントがつかんだ共通点：庭・小川・森の葉に降る雨で、硬い面を叩く音が主役でない。反響と背景ノイズが少なく、ステレオで定常的な粒立ち。小川や雨樋の水音が伴うことがある。
+| 強さ | id | 題名（作者） | 長さ | 元形式 | 備考 |
+| --- | --- | --- | --- | --- | --- |
+| 小 | 695571 | Light Rain on Woodland Floor and Running Stream（thinkingfish） | 2:37 | WAV 48k | エージェントの推し。森の床と小川、Courtyard に近い構成 |
+| 小 | 678435 | Soft Rain in Forest, Raindrops fall on leaves（Borgory） | 4:00 | WAV 48k | 長い |
+| 小 | 615747 | Tropical Rain - light in a forest（nyoz） | 1:02 | WAV 48k | 熱帯林。粒がやや密 |
+| 小 | 667775 | Pluie calme sur feuilles, Nuit, Foret（yaya-dc） | 1:03 | WAV 48k | 夜の森 |
+| 中 | 536843 | rain in the forest atmo（Garuda1982） | 10:03 | WAV 44.1k | エージェントの推し。Zeist に近い定常感。14.8MB |
+| 中 | 865323 | Drops On Grass, Bushes, Ferns And Leaves（newlocknew） | 2:42 | WAV 48k | 遠くに高速道路の音がかすかに |
+| 中 | 641871 | It starts raining in the forest（Malte007） | 1:56 | WAV 44.1k | 降り始めからだんだん強く |
+| 中 | 670303 | forest drop rain（bruno.auzet） | 3:53 | WAV 48k | 「Loud drops」とあり粒が立つ箇所があるかも |
+| 大 | 588721 | Strong Autumn rainstorm（LarsErikErtzgaardRingen） | 5:02 | WAV 48k | エージェントの推し。松林の庭。強風の音の懸念 |
+| 大 | 704395 | Rain at night medium（jgxxx） | 1:44 | WAV 44.1k | 夜の森。本降り寄り |
+| 大 | 865923 | Woodlands summer downpour Dalstorp（forestfjord） | 5:03 | MP3 320k mono | 茅葺き屋根の雫の音が入る。要試聴 |
+森に降る純粋な柔らかい豪雨は CC0 ではあまり無い（大は 3 本）。
 
 ### Freesound CC0 の候補（屋外の雨。2026-09-16 に選び直し。すべて各ページでライセンスを確認済み）
 条件：屋外録音、60 秒以上、雷・声・車・目立つ鳥なし、実録音。窓・屋根・テント・傘・車内など何かを叩く音が主役のものは除外。
