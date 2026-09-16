@@ -346,7 +346,7 @@
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
     interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, debug: false,
-    rainVol: 50, rainSounds: { light: 502880, mid: 393728, heavy: 512965 },   // 雨音の音量と、段階ごとに採用した Freesound の id
+    rainVol: 50, rainSounds: { light: 695571, mid: 393728, heavy: 705730 },   // 雨音の音量と、段階ごとに採用した Freesound の id
   };
   function loadState() {
     try {
@@ -821,33 +821,24 @@
   // 推しの 3 本は rain/sounds/ に同梱（プレビュー品質の MP3、128kbps）。ほかの候補は Freesound のプレビューをその場で取る（CORS 可）。
   // 候補と出典は rain/sounds/README.md にも書いてある。
   const RAIN_SOUNDS = [
-    // 各段階の先頭は本人が気に入ったもの（fav）。同梱は bundled
-    { id: 502880, user: 129727,   tier: 'light', name: 'Outdoors_Day_LightRain_01', author: 'MrFossy', dur: '1:30', note: '郊外の昼。澄んでいる', bundled: true },
-    { id: 695571, user: 5392691,  tier: 'light', name: 'Light Rain on Woodland Floor and Running Stream', author: 'thinkingfish', dur: '2:37', note: '森の床と小川' },
+    // 各段階の先頭は本人が気に入ったもの（fav）。同梱は bundled。最初の屋外 12 本は本人の指示で fav の 3 本だけ残した（2026-09-16）
+    { id: 695571, user: 5392691,  tier: 'light', name: 'Light Rain on Woodland Floor and Running Stream', author: 'thinkingfish', dur: '2:37', note: '森の床と小川', bundled: true },
     { id: 678435, user: 801011,   tier: 'light', name: 'Soft Rain in Forest, Raindrops fall on leaves', author: 'Borgory', dur: '4:00', note: 'ドイツの森。葉に落ちる。長い' },
     { id: 615747, user: 2355118,  tier: 'light', name: 'Tropical Rain - light in a forest', author: 'nyoz', dur: '1:02', note: 'レユニオン島の熱帯林。葉と幹' },
     { id: 667775, user: 7072773,  tier: 'light', name: 'Pluie calme sur feuilles, Nuit, Foret', author: 'yaya-dc', dur: '1:03', note: '夜の森の葉' },
-    { id: 486423, user: 3373603,  tier: 'light', name: 'rain in my garden', author: 'zoomology', dur: '4:29', note: '庭の木や草に降る雨。長い。ときどき車や飛行機' },
-    { id: 182525, user: 1050391,  tier: 'light', name: 'Light Rain in Pines', author: 'kvgarlic', dur: '2:21', note: '松林。ときどき鳥の声' },
-    { id: 517316, user: 7241289,  tier: 'light', name: 'Light Outdoor Rain', author: 'BurghRecords', dur: '1:26', note: 'エディンバラ。雷が入るかもしれない' },
     { id: 393728, user: 123355,   tier: 'mid',   name: 'Steady rain in Zeist', author: 'hz37', dur: '1:15', note: '庭の葉に当たるような', bundled: true, fav: true },
     { id: 734972, user: 13973196, tier: 'mid',   name: 'Rain - Courtyard', author: 'Vrymaa', dur: '1:11', note: '庭園の小川のほとりの雨', fav: true },
     { id: 536843, user: 2061858,  tier: 'mid',   name: 'rain in the forest atmo', author: 'Garuda1982', dur: '10:03', note: '森。一定。とても長い' },
     { id: 865323, user: 5828667,  tier: 'mid',   name: 'Drops On Grass, Bushes, Ferns And Leaves', author: 'newlocknew', dur: '2:42', note: '森の下草とシダ。遠くにかすかな道路の音' },
     { id: 641871, user: 12980865, tier: 'mid',   name: 'It starts raining in the forest', author: 'Malte007', dur: '1:56', note: '森で降り始める。だんだん強く' },
     { id: 670303, user: 11519060, tier: 'mid',   name: 'forest drop rain', author: 'bruno.auzet', dur: '3:53', note: '夜の静かな森、濡れた落ち葉。粒が立つところあり' },
-    { id: 751684, user: 13973196, tier: 'mid',   name: 'Rain Ambience', author: 'Bryce835', dur: '5:13', note: 'オハイオ。長い。途中で強くなる' },
-    { id: 405630, user: 5923045,  tier: 'mid',   name: 'the end of a rainstorm', author: 'Anthousai', dur: '3:47', note: 'オレゴン。強い雨から弱まっていく' },
-    { id: 705730, user: 15236906, tier: 'heavy', name: 'Heavy rainfall', author: 'mudflea2', dur: '9:05', note: '木々の中。柔らかい。とても長い。缶に当たる音や動物の声が入ることがある', fav: true },
-    { id: 512965, user: 2008778,  tier: 'heavy', name: 'Heavy rain Larnaca', author: 'ratdh9', dur: '1:48', note: 'キプロス。澄んでいる', bundled: true },
+    { id: 705730, user: 15236906, tier: 'heavy', name: 'Heavy rainfall', author: 'mudflea2', dur: '9:05', note: '木々の中。柔らかい。とても長い。缶に当たる音や動物の声が入ることがある', bundled: true, fav: true },
     { id: 588721, user: 11576705, tier: 'heavy', name: 'Strong Autumn rainstorm', author: 'LarsErikErtzgaardRingen', dur: '5:02', note: '松林に囲まれた庭の秋の嵐。風の音が入るかも' },
     { id: 704395, user: 14923038, tier: 'heavy', name: 'Rain at night medium', author: 'jgxxx', dur: '1:44', note: '夜の森。本降り' },
     { id: 865923, user: 9361706,  tier: 'heavy', name: 'Woodlands summer downpour Dalstorp', author: 'forestfjord', dur: '5:03', note: 'スウェーデンの森の夏の豪雨。茅葺き屋根の雫の音が入る' },
-    { id: 616446, user: 6801313,  tier: 'heavy', name: 'Heavy rain pouring on concrete', author: 'AdrianoAnjos', dur: '1:50', note: 'コンクリートに降る豪雨。少し水の流れ' },
-    { id: 717843, user: 97550,    tier: 'heavy', name: 'Rain heavy, concrete, trees, Toronto 7am', author: 'TRP', dur: '1:56', note: 'トロントの朝' },
   ];
   const RAIN_TIERS = [['light', '小雨'], ['mid', '雨〜本降り'], ['heavy', '豪雨']];
-  const RAIN_DEFAULT = { light: 502880, mid: 393728, heavy: 512965 };   // 同梱の 3 本
+  const RAIN_DEFAULT = { light: 695571, mid: 393728, heavy: 705730 };   // 同梱の 3 本
   function rainSoundOf(id) { return RAIN_SOUNDS.find((x) => x.id === id); }
   for (const [tier] of RAIN_TIERS) if (!rainSoundOf(state.rainSounds[tier])) state.rainSounds[tier] = RAIN_DEFAULT[tier];   // 古い設定の id は既定に戻す
   function rainSoundUrl(x) { return x.bundled ? `rain/sounds/${x.id}.mp3` : `https://cdn.freesound.org/previews/${String(x.id).slice(0, 3)}/${x.id}_${x.user}-hq.mp3`; }

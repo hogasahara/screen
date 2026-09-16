@@ -37,7 +37,7 @@
 | `index.html` | 本体。CSS・HTML・JS がすべて入った単一ファイル（約1100行） |
 | `manifest.json`, `icon.svg`, `icon-192.png`, `icon-512.png` | ホーム画面に追加すると全画面で起動する PWA 設定とアイコン |
 | `rain/raindrop-fx.js`, `rain/LICENSE`, `rain/README.md` | 雨の演出ライブラリ [raindrop-fx](https://github.com/SardineFish/raindrop-fx) 1.0.8 の同梱（MIT、SardineFish）。雨をオンにしたときだけ読み込む |
-| `rain/sounds/*.mp3`, `rain/sounds/README.md` | 屋外の雨音 3 本（Freesound、CC0、プレビュー品質の MP3、計 6.5MB）と出どころ |
+| `rain/sounds/*.mp3`, `rain/sounds/README.md` | 屋外の柔らかい雨音 3 本（Freesound、CC0、プレビュー品質の MP3、計 17MB。豪雨の 9 分が 11.7MB）と出どころ |
 | `.github/workflows/pages.yml` | main への push で `index.html`・`manifest.json`・アイコン・`rain/`（ライブラリと雨音）を GitHub Pages に配置 |
 | `README.md` | 使いかた |
 | `HANDOFF.md` | この文書 |
@@ -168,7 +168,7 @@
 
 ### 仕組み（`index.html` の「雨音」）
 - `RAIN_SOUNDS`：候補の表（id、投稿者 id、段階 `light/mid/heavy`、題名、備考、`bundled`）。URL は同梱なら `rain/sounds/<id>.mp3`、そうでなければ Freesound のプレビュー `https://cdn.freesound.org/previews/<id先頭3桁>/<id>_<投稿者id>-hq.mp3`（CORS 可を確認済み）
-- `state.rainSounds = {light, mid, heavy}` に採用した id（既定 `RAIN_DEFAULT` = 502880 / 393728 / 512965、同梱の 3 本）。候補に無い id が設定に残っていたら既定に戻す。`state.rainVol`（0〜100、既定 50）
+- `state.rainSounds = {light, mid, heavy}` に採用した id（既定 `RAIN_DEFAULT` = 695571 / 393728 / 705730、同梱の 3 本）。候補に無い id が設定に残っていたら既定に戻す。`state.rainVol`（0〜100、既定 50）
 - Web Audio。`AudioBufferSourceNode` を `loop` で回す（`loopStart` 0.05 秒、`loopEnd` は終わりの 0.05 秒手前。MP3 の端の無音を避ける）。3 本を `rainMix(v)` の比率で重ねる：小雨は雨量 25 まで単独で 55 で消える、中は 15〜40 で立ち上がり 65〜90 で引く、豪雨は 45〜80 で立ち上がる。開始位置はランダム（3 本が同じ頭から始まらないように）
 - 全体の音量 `rainMasterLevel()` = (つまみ/100)² × 0.8 × (0.55 + 0.45 × 雨量/100)。つまみは二乗で効かせて下のほうを細かく
 - 切り替えは `fadeGain`（線形ランプ。立ち上がり 2.5 秒、雨量の変化 0.8 秒、消えるとき 1.5 秒）。`applyRain()` が雨量のたびに `updateRainSound()` を呼び、`stopRain()` が `stopRainSound()` を呼ぶ
@@ -203,7 +203,8 @@
 - 705730 Heavy rainfall：「柔らかい雨音と、そのほかのノイズ」
 - 393728 Steady rain in Zeist：「庭の葉に当たるような」
 つまり葉・草・水辺に降る粒の柔らかい雨。硬い面（コンクリート・屋根）を叩く音や一様なノイズ状の音は好みでない。小雨の候補には挙がらなかった。
-この方向で候補を 11 本追加した（下の表の「追加」）。候補シートでは各段階の先頭に気に入った 3 本（`fav`、♥ 印）を置いている。既定（同梱）の見直しは本人の指示で。
+この方向で候補を 11 本追加し、本人の指示で**最初の屋外 12 本は気に入った 3 本だけ残して削除**した。候補シートでは各段階の先頭に気に入った 3 本（`fav`、♥ 印）を置いている。
+既定（同梱）は 小雨 695571（本人は小雨を挙げていないので、Courtyard に近い構成としてエージェントの推しを仮に）／雨〜本降り 393728（本人の気に入り）／豪雨 705730（本人の気に入り。9 分・11.7MB、缶に当たる音や動物の声が入ることは本人も承知）。**小雨の既定は本人の耳で未確認**
 
 ### 追加候補（柔らかい雨。2026-09-16、すべて CC0 確認済み）
 エージェントがつかんだ共通点：庭・小川・森の葉に降る雨で、硬い面を叩く音が主役でない。反響と背景ノイズが少なく、ステレオで定常的な粒立ち。小川や雨樋の水音が伴うことがある。
@@ -222,22 +223,9 @@
 | 大 | 865923 | Woodlands summer downpour Dalstorp（forestfjord） | 5:03 | MP3 320k mono | 茅葺き屋根の雫の音が入る。要試聴 |
 森に降る純粋な柔らかい豪雨は CC0 ではあまり無い（大は 3 本）。
 
-### Freesound CC0 の候補（屋外の雨。2026-09-16 に選び直し。すべて各ページでライセンスを確認済み）
-条件：屋外録音、60 秒以上、雷・声・車・目立つ鳥なし、実録音。窓・屋根・テント・傘・車内など何かを叩く音が主役のものは除外。
-| 強さ | id | 題名（作者） | 長さ | 元形式 | 備考 |
-| --- | --- | --- | --- | --- | --- |
-| 小 | 502880 | Outdoors_Day_LightRain_01（MrFossy） | 1:30 | WAV 96k | **同梱**。郊外の昼、いちばん澄んでいる |
-| 小 | 486423 | rain in my garden（zoomology） | 4:29 | WAV 44.1k | 庭の草木。長い。ときどき車や飛行機 |
-| 小 | 182525 | Light Rain in Pines（kvgarlic） | 2:21 | WAV 44.1k | 松林。ときどき鳥の声 |
-| 小 | 517316 | Light Outdoor Rain（BurghRecords） | 1:26 | WAV 96k | エディンバラ。タグに thunder があり雷が入るかも |
-| 中 | 393728 | Steady rain in Zeist（hz37） | 1:15 | WAV 48k | **同梱**。一定の雨で澄んでいる |
-| 中 | 751684 | Rain Ambience（Bryce835） | 5:13 | M4A 44.1k | 長い。途中で強くなる |
-| 中 | 405630 | the end of a rainstorm（Anthousai） | 3:47 | WAV 96k | 強い雨から弱まっていく |
-| 中 | 734972 | Rain - Courtyard（Vrymaa） | 1:11 | WAV 48k | 石畳の中庭。終わりに雨樋の音が近づく |
-| 大 | 512965 | Heavy rain Larnaca（ratdh9） | 1:48 | WAV 48k | **同梱**。澄んだ屋外の豪雨 |
-| 大 | 616446 | Heavy rain pouring on concrete（AdrianoAnjos） | 1:50 | WAV 44.1k | コンクリート。少し水の流れ |
-| 大 | 717843 | Rain heavy, concrete, trees, Toronto 7am（TRP） | 1:56 | MP3 48k | |
-| 大 | 705730 | Heavy rainfall（mudflea2） | 9:05 | WAV 96k | 木々の中。とても長いが、缶に当たる音や猫犬のタグがあり要試聴 |
+### 最初の屋外 12 本（2026-09-16。fav の 3 本だけ残し、あとは本人の指示で削除。記録として id）
+小 502880（MrFossy、いちばん澄んでいた。旧既定）・486423・182525・517316、中 393728（残）・751684・405630・734972（残）、大 512965（ratdh9、旧既定）・616446・717843・705730（残）。
+条件は屋外録音、60 秒以上、雷・声・車・目立つ鳥なし、実録音。窓・屋根・テント・傘・車内など何かを叩く音が主役のものは除外。
 
 エージェントが外したもの：830377（車の通過が明確）、590977（屋根の音）、847111（雨上がりの鳥と子供の声）。
 
