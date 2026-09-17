@@ -26,7 +26,7 @@
 - アンコモン・プレイス（アメリカ）：ショアの写真集の分析から。交差点と信号、駐車場と車、モーテルの外観と部屋、ガソリンスタンド、二車線道路と電柱・電線・看板、住宅街と木造の家、平屋の商業建築、ダイナーの食事、映画館の看板。日中の平らな光、褪せた色、中景〜遠景、水平、正面。人はいないか小さい
 - 日本の街：都会以外の日本の家並みや店を、色あせたような色合いで。近景から遠景まで。昼も含めてよい
 - マルタ島：本人の言葉は「地中海の観光地」だけ（2026-09-14、出先から）。上の方針を当てて、蜂蜜色の石灰岩の家並みと木の出窓、港と舟、集落と教会のドーム、近景から遠景まで、人はいないか小さい、とした。島全体が観光地なので「観光地の地名を避ける」方針の例外。首都（valletta）と漁港（marsaxlokk）は絵葉書に寄りやすいので差し込みの重みにしてある。**語はまだ本人の目で見ていない**
-- シベリア：本人の言葉は「シベリアの風景を追加したい」だけ（2026-09-17）。上の方針を当てて、タイガと木造の村、バイカルの氷と冬の集落、ヤクーチアの霧氷、木造建築の街（トムスク、イルクーツク）、シベリア鉄道、とした。冬が主体だが季節は問わない。**語はまだ本人の目で見ていない**
+- シベリア：本人の言葉は「シベリアの風景を追加したい」「ソ連的なアパートとかも欲しい。木造にこだわるより、共産主義の景色もみたい。広めに取れる方が良い」（2026-09-17）。風景（ヤクーチア、バイカル、タイガ、アルタイ、木造の街）と、ソ連の街（団地、大通り、バス停、記念碑、工場町）の両方。冬が主体だが季節は問わない。**語はまだ本人の目で見ていない**
 - 「人々の営み」は人物ではなく痕跡（灯りの窓、看板、耕された畑）。人はいないか小さい
 - 「色あせた色合い」は表示側で彩度を落とすのではなく語で狙う（本人の判断。色あせた色調で撮る写真家はそれが映える被写体を選んでいる）。Unsplash では `film photography` を語に含める
 - ヨーロッパの村は本人の判断で削除
@@ -98,6 +98,8 @@
 - 使用回数順（`gsrsort=incoming_links_desc`）は記事に載せやすい記録写真が上に来るので審美性とは無関係
 - 日本の Commons 語は、シリーズで上げている投稿者の語（`danchi`、`japan residential street`、`"street view" fukuoka`、`japan port town street`、`japan level crossing street`、`incategory:"Snack bars in Japan"`）
 - マルタ島（2026-09-15 に API で確認）：Commons の認定画像はマルタ全体で約550枚のひとつのプール（Diego Delso の 2021 年 8 月の連作と BW の 2011 年連作が大半）。`malta village` `malta street` `malta coast` `malta boats` はどれも品質画像 544〜585 件で、一般語は絞り込みに効いていない。効くのは地名：`gozo village`（品質 102、田園と集落の眺め）、`valletta`（71、街路）、`mdina`（45）、`marsaxlokk`（34、漁港）、`malta coast town`（16、スリーマの色つき出窓）、`grand harbour malta`（10、港と三姉妹都市）。`malta village` はポパイ村（映画のセットの遊園地）と語学学校の宿泊施設が上位に来るので使わない。`malta harbour` は認定に水中生物が多い。`malta church dome` はモスタのドームばかり。同じ写真家・同じ場所名の上限が連作をほぐす前提
+- シベリア（2026-09-17 に API で確認）：認定画像は語ごとに少ない（`yakutia` 品質 41、`taiga` 60、`olkhon` 秀逸 9・品質 23、`irkutsk wooden house` 品質 21、`baikal winter` 4、`altai village` 8）。**一般語は外れる**：`siberia village` と `siberian village winter` は 1900 年前後の古写真と本のスキャン、`siberia winter` はジャンガリアンハムスター（学名 Phodopus sungorus の説明に当たる）、`trans-siberian railway` はファベルジェの卵・切手・地図。**建物語＋地域は 0 件**（`khrushchyovka siberia`、`soviet apartment building siberia`、`panel building novosibirsk`。Commons は AND なので両方書かれた写真がない）。**ソ連の街は都市名で当てる**：`norilsk`（757、レーニン大通り、典型的な住宅）、`omsk street`（1166）、`krasnoyarsk street`（4975）、`novosibirsk winter`（169、街路と河港）、`yakutsk`（4677、大通り）、`ulan-ude`、`barnaul`、`bratsk`。都市名単独は紋章・旗・地図・トラムが混じるので除外語を付けた。`bus stop siberia` は 7 件だけ。これらは認定に無いので語ごとに `plain`
+- Commons のカテゴリ名：団地は「Khrushchyovkas」ではなく「Khrushchev's apartment buildings in ○○」「Panel apartment blocks in ○○（国別）」。ノリリスクは「Buildings in Norilsk」「Streets in Norilsk」。`deepcat:"Buildings in Novosibirsk"` のようなサブカテゴリまで辿る検索は動く（45 件）が、空港やカフェまで混じって雑。団地カテゴリの deepcat は確認中（レート制限で途中）
 - **Unsplash の新しい語の当たりはまだ本人の目で見ていない**（マルタ島、シベリアも含む）。「検索語の当たりを見る」で確かめてもらうところで止まっている（雨の作業が先になった）
 
 ## 雨の窓ガラス（演出）

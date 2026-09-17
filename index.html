@@ -341,13 +341,20 @@
                  'malta coast village', 'malta film photography', { q: 'marsaxlokk fishing boats', w: 0.5 }, { q: 'mdina street', w: 0.4 },
                  { q: 'malta church dome town', w: 0.3 }] },
     siberia: { name: 'シベリア',
-      // 本人の言葉は「シベリアの風景」。上の方針を当てて、タイガと木造の村、バイカルの氷と冬の集落、ヤクーチアの霧氷、
-      // 木造建築の街（トムスク、イルクーツク）、シベリア鉄道。冬が主体だが季節は問わない。人はいないか小さい
-      commons: ['siberia village', 'siberian village winter', 'baikal winter', 'olkhon', 'yakutia', 'tomsk wooden', 'taiga',
-                { q: 'trans-siberian railway', w: 0.4 }],
+      // 本人の言葉：「シベリアの風景」「ソ連的なアパートとか。木造にこだわるより共産主義の景色も。広めに」
+      // 風景（ヤクーチア、バイカル、タイガ、アルタイ、木造の街）は認定画像から。ソ連の街は都市名で当てて通常検索だけ（plain）。
+      // Commons で確かめたこと：「siberia village」は 1900 年前後の古写真、「siberia winter」はジャンガリアンハムスター、
+      // 「khrushchyovka siberia」のような建物語＋地域は 0 件。都市名＋street、都市名単独（紋章・地図を除外）が効く
+      commons: ['yakutia', { q: 'baikal winter', w: 0.6 }, { q: 'olkhon', w: 0.4 }, { q: 'taiga', w: 0.5 }, { q: 'irkutsk wooden house', w: 0.6 },
+                { q: 'altai village', w: 0.5 }, { q: 'baikal village', w: 0.6, plain: true }, { q: 'tomsk wooden', w: 0.4, plain: true },
+                { q: 'norilsk -flag -coat -map', w: 0.8, plain: true }, { q: 'omsk street', w: 0.6, plain: true }, { q: 'krasnoyarsk street', w: 0.6, plain: true },
+                { q: 'novosibirsk winter', w: 0.6, plain: true }, { q: 'yakutsk -flag -coat -map -tanker', w: 0.6, plain: true },
+                { q: 'ulan-ude -map -flag', w: 0.5, plain: true }, { q: 'barnaul -tram -trolleybus', w: 0.4, plain: true },
+                { q: 'bratsk -flag -coat -banner', w: 0.3, plain: true }, { q: 'bus stop siberia', w: 0.2, plain: true }],
       unsplash: ['siberia village winter', 'siberian wooden house', 'russian village wooden houses snow', 'baikal ice winter', 'taiga forest road',
-                 'yakutia frost', 'siberia town winter smoke', 'siberia film photography', { q: 'trans-siberian railway station', w: 0.4 },
-                 { q: 'frozen river siberia', w: 0.5 }, { q: 'birch forest snow', w: 0.4 }] },
+                 'yakutia frost', 'siberia town winter smoke', 'siberia film photography', 'soviet apartment blocks winter russia', 'khrushchyovka',
+                 'panel buildings russia winter', 'russian courtyard winter soviet', 'soviet mosaic', { q: 'trans-siberian railway station', w: 0.4 },
+                 { q: 'frozen river siberia', w: 0.5 }, { q: 'birch forest snow', w: 0.4 }, { q: 'soviet bus stop', w: 0.3 }] },
   };
   const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
