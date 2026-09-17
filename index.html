@@ -287,7 +287,7 @@
 <script>
 (() => {
   // ---------- テーマごとの検索語 ----------
-  // 語は文字列か {q, w}。w は出す比率の重み（省略で 1）。差し込みの被写体は 0.2〜0.4 に落とす。
+  // 語は文字列か {q, w, plain, deep}。w は出す比率の重み（省略で 1）。差し込みの被写体は 0.2〜0.4 に落とす。plain は認定カテゴリを飛ばす、deep は通常検索を深く読む上限
   // Commons は名詞と場所名しか効かない（AND 検索、-語 で除外できる）。Unsplash はタグと説明文に当たるので、
   // 光と時間（dusk, blue hour, overcast）、距離（street, exterior, distant）、色調（film photography）の語が効く。
   const THEMES = {
@@ -446,10 +446,11 @@
     for (const t of (themes.length ? themes : ['blue'])) {
       const th = THEMES[t];
       const words = th[state.source] || th.unsplash;
-      const tiers = (state.source !== 'commons' || th.plain) ? [2] : [0, 1, 2];
       for (const w of words) {
         const q = typeof w === 'string' ? w : w.q;
-        list.push({ q, w: (typeof w === 'string' ? 1 : (w.w || 1)), tiers, theme: t, deep: th.deep, oneAuthorOk: !!th.oneAuthorOk });
+        const plain = th.plain || (typeof w === 'object' && w.plain);   // 語ごとにも認定カテゴリを飛ばせる（風景は認定から、建物は通常検索から、のように）
+        const tiers = (state.source !== 'commons' || plain) ? [2] : [0, 1, 2];
+        list.push({ q, w: (typeof w === 'string' ? 1 : (w.w || 1)), tiers, theme: t, deep: (typeof w === 'object' && w.deep) || th.deep, oneAuthorOk: !!th.oneAuthorOk });
       }
     }
     return list;
