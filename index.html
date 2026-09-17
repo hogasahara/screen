@@ -203,6 +203,7 @@
     <label><input type="checkbox" name="theme" value="america"> アンコモン・プレイス（アメリカ）</label>
     <label><input type="checkbox" name="theme" value="japan"> 日本の街</label>
     <label><input type="checkbox" name="theme" value="malta"> マルタ島</label>
+    <label><input type="checkbox" name="theme" value="siberia"> シベリア</label>
     <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
     <button class="file" id="btnSheet" type="button">検索語の当たりを見る</button>
     <small>いま選んでいる出どころとテーマの語ごとに、取れた写真を一覧にします。Unsplash では語の数だけ要求を使います。</small>
@@ -339,6 +340,14 @@
       unsplash: ['malta street balconies', 'malta limestone houses', 'malta harbour boats', 'gozo village', 'valletta street', 'malta town evening',
                  'malta coast village', 'malta film photography', { q: 'marsaxlokk fishing boats', w: 0.5 }, { q: 'mdina street', w: 0.4 },
                  { q: 'malta church dome town', w: 0.3 }] },
+    siberia: { name: 'シベリア',
+      // 本人の言葉は「シベリアの風景」。上の方針を当てて、タイガと木造の村、バイカルの氷と冬の集落、ヤクーチアの霧氷、
+      // 木造建築の街（トムスク、イルクーツク）、シベリア鉄道。冬が主体だが季節は問わない。人はいないか小さい
+      commons: ['siberia village', 'siberian village winter', 'baikal winter', 'olkhon', 'yakutia', 'tomsk wooden', 'taiga',
+                { q: 'trans-siberian railway', w: 0.4 }],
+      unsplash: ['siberia village winter', 'siberian wooden house', 'russian village wooden houses snow', 'baikal ice winter', 'taiga forest road',
+                 'yakutia frost', 'siberia town winter smoke', 'siberia film photography', { q: 'trans-siberian railway station', w: 0.4 },
+                 { q: 'frozen river siberia', w: 0.5 }, { q: 'birch forest snow', w: 0.4 }] },
   };
   const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
