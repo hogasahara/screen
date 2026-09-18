@@ -58,6 +58,9 @@
   #clock { position: fixed; right: 4.5vw; bottom: 5vh; text-align: right; text-shadow: 0 1px 14px rgba(0,0,0,0.55); transition: opacity 1.5s; }
   #clock .time { font-size: clamp(34px, 5.2vw, 84px); font-weight: 300; letter-spacing: 0.05em; line-height: 1; }
   #clock .date { font-size: clamp(11px, 1vw, 15px); letter-spacing: 0.14em; color: var(--paper-dim); margin-top: 0.6em; }
+  #clock .world { font-size: clamp(11px, 1vw, 15px); letter-spacing: 0.1em; color: var(--paper-dim); margin-top: 0.55em; }
+  #clock .world span + span { margin-left: 1.4em; }
+  #clock .world .tz { opacity: 0.75; margin-right: 0.5em; }
   .hidden { opacity: 0 !important; }
 
   /* 起きている時だけ見える操作 */
@@ -157,6 +160,7 @@
 <div id="clock">
   <div class="time">--:--</div>
   <div class="date"></div>
+  <div class="world"></div>
 </div>
 
 <div id="hud">
@@ -225,6 +229,7 @@
     <label style="margin-top:10px"><input type="checkbox" id="motion" checked> 写真をゆっくり動かす</label>
     <label><input type="checkbox" id="showCaption" checked> キャプションを出す</label>
     <label><input type="checkbox" id="showClock" checked> 時計を出す</label>
+    <label><input type="checkbox" id="showWorld" checked> ロンドンとニューヨークの時刻も出す</label>
   </section>
 
   <section>
@@ -361,7 +366,7 @@
   // ---------- 設定（URLのハッシュに残す） ----------
   const state = {
     source: 'commons', unsplashKey: '', flickrKey: '', themes: ['blue'],
-    interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, debug: false,
+    interval: 30, tint: 28, rain: 0, rainBlur: false, rainShadow: 73, motion: true, caption: true, clock: true, world: true, debug: false,
     rainVol: 50, rainSounds: { light: 695571, mid: 393728, heavy: 705730 },   // 雨音の音量と、段階ごとに採用した Freesound の id
   };
   function loadState() {
@@ -1102,10 +1107,22 @@
 
   // ---------- 時計 ----------
   const DAYS = ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'];
+  // ほかの街の時刻。夏時間はブラウザの時間帯データに任せる。日付がこちらと違うときは印を付ける
+  const WORLD = [['London', 'Europe/London'], ['New York', 'America/New_York']];
+  const worldFmt = WORLD.map(([name, tz]) => [name, new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }),
+                                              new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })]);
+  const worldEl = clockEl.querySelector('.world');
+  for (const [name] of WORLD) { const s = document.createElement('span'); s.innerHTML = '<span class="tz"></span><span class="hm"></span>'; s.querySelector('.tz').textContent = name; worldEl.appendChild(s); }
   function tick() {
     const n = new Date();
     clockEl.querySelector('.time').textContent = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
     clockEl.querySelector('.date').textContent = `${n.getMonth() + 1}月${n.getDate()}日　${DAYS[n.getDay()]}`;
+    if (!state.world) return;
+    const here = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(n);
+    worldEl.querySelectorAll('.hm').forEach((el, i) => {
+      const day = worldFmt[i][2].format(n);
+      el.textContent = worldFmt[i][1].format(n).replace(/^24/, '00') + (day < here ? ' 前日' : day > here ? ' 翌日' : '');
+    });
   }
   setInterval(tick, 1000); tick();
 
@@ -1153,6 +1170,7 @@
     tintEl.style.opacity = state.tint / 100;
     captionEl.classList.toggle('hidden', !state.caption);
     clockEl.classList.toggle('hidden', !state.clock);
+    worldEl.hidden = !state.world;
     capDebug.hidden = !state.debug;
     $('#intervalVal').textContent = state.interval + '秒';
     $('#tintVal').textContent = state.tint;
@@ -1167,7 +1185,7 @@
     $('#interval').value = state.interval; $('#tintRange').value = state.tint; $('#rainRange').value = state.rain; $('#rainBlur').checked = !!state.rainBlur;
     $('#rainShadowRange').value = state.rainShadow; $('#rainShadowVal').textContent = state.rainShadow;
     $('#rainVolRange').value = state.rainVol; $('#rainVolVal').textContent = state.rainVol;
-    $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showDebug').checked = state.debug;
+    $('#motion').checked = state.motion; $('#showCaption').checked = state.caption; $('#showClock').checked = state.clock; $('#showWorld').checked = state.world !== false; $('#showDebug').checked = state.debug;
   }
   syncForm(); applyView(); updateFavUI();
 
@@ -1192,6 +1210,7 @@
   $('#motion').addEventListener('change', () => { state.motion = $('#motion').checked; saveState(); });
   $('#showCaption').addEventListener('change', () => { state.caption = $('#showCaption').checked; applyView(); saveState(); });
   $('#showClock').addEventListener('change', () => { state.clock = $('#showClock').checked; applyView(); saveState(); });
+  $('#showWorld').addEventListener('change', () => { state.world = $('#showWorld').checked; applyView(); saveState(); tick(); });
   $('#showDebug').addEventListener('change', () => { state.debug = $('#showDebug').checked; applyView(); saveState(); });
 
   // お気に入りの書き出し・読み込み
