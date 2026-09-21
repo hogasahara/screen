@@ -208,6 +208,7 @@
     <label><input type="checkbox" name="theme" value="japan"> 日本の街</label>
     <label><input type="checkbox" name="theme" value="malta"> マルタ島</label>
     <label><input type="checkbox" name="theme" value="siberia"> シベリア</label>
+    <label><input type="checkbox" name="theme" value="room"> 静かな部屋</label>
     <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
     <button class="file" id="btnSheet" type="button">検索語の当たりを見る</button>
     <small>いま選んでいる出どころとテーマの語ごとに、取れた写真を一覧にします。Unsplash では語の数だけ要求を使います。</small>
@@ -360,6 +361,15 @@
                  'yakutia frost', 'siberia town winter smoke', 'siberia film photography', 'soviet apartment blocks winter russia', 'khrushchyovka',
                  'panel buildings russia winter', 'russian courtyard winter soviet', 'soviet mosaic', { q: 'trans-siberian railway station', w: 0.4 },
                  { q: 'frozen river siberia', w: 0.5 }, { q: 'birch forest snow', w: 0.4 }, { q: 'soviet bus stop', w: 0.3 }] },
+    room: { name: '静かな部屋', plain: true,
+      // 本人の言葉：「ミニマルな風景やシーン」→ 4 つの型のうち「静かなシーン（室内や身近な一角）」が一番近い（2026-09-21）。
+      // 窓辺の椅子、テーブルの上の一杯、カーテン越しの光、雨の窓辺。要素は 1〜2 つで余白が多い。人はいない。色あせた、落ち着いた色。白黒は含めない
+      // Commons は室内の記録写真が多くて向かない（plain）。Unsplash が本命
+      commons: ['window chair', 'still life cup', 'curtain light', 'empty room window', 'kitchen window light', { q: 'rain window interior', w: 0.5 },
+                { q: 'window sill', w: 0.4 }, { q: 'table lamp evening', w: 0.4 }],
+      unsplash: ['minimal interior window light', 'chair by the window', 'cup on table window light', 'curtain morning light', 'empty room natural light',
+                 'quiet interior film photography', 'kitchen table morning light', 'window sill light', 'rainy window interior', 'desk lamp evening room',
+                 { q: 'bed linen morning light', w: 0.5 }, { q: 'book on table window', w: 0.4 }, { q: 'tea cup rainy day', w: 0.4 }] },
   };
   const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
