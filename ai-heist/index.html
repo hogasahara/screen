@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>AIに丸投げした銀行破り</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Shippori+Mincho+B1:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 証券会社のアナリストレポート風。上部に格付けボックス付きの表紙帯、本文は読みやすい1カラム、詳しい人向けは開閉式の「深掘り」 */
+:root{
+  --bg:#F5F6F8;
+  --paper:#FFFFFF;
+  --ink:#16203A;
+  --muted:#5A6378;
+  --line:#D9DDE5;
+  --accent:#C2410C;      /* 警戒色 */
+  --accent-soft:#FCEBDD;
+  --deep:#0E6B63;        /* 深掘り */
+  --deep-soft:#E1F1EE;
+  --band:#16203A;
+  --band-fg:#F5F6F8;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1322;--paper:#161D30;--ink:#E7EAF1;--muted:#A3ABBE;--line:#2C3550;
+    --accent:#F59E5B;--accent-soft:#3A2418;--deep:#4FD1C0;--deep-soft:#13302E;
+    --band:#0A0F1C;--band-fg:#E7EAF1;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1322;--paper:#161D30;--ink:#E7EAF1;--muted:#A3ABBE;--line:#2C3550;
+  --accent:#F59E5B;--accent-soft:#3A2418;--deep:#4FD1C0;--deep-soft:#13302E;
+  --band:#0A0F1C;--band-fg:#E7EAF1;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.85;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+a{color:var(--deep)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* 表紙帯 */
+.band{background:var(--band);color:var(--band-fg)}
+.band .wrap{padding-block:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em}
+.band span{opacity:.85}
+
+header.cover{padding-block:36px 8px;display:grid;grid-template-columns:1fr 200px;gap:28px;align-items:start}
+@media (max-width:640px){header.cover{grid-template-columns:1fr}}
+.eyebrow{font-size:13px;letter-spacing:.12em;color:var(--accent);font-weight:700}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,6vw,44px);line-height:1.3;margin:8px 0 14px;text-wrap:balance}
+.lede{color:var(--muted);margin:0;font-size:17px}
+
+.rating{background:var(--paper);border:1px solid var(--line);border-top:4px solid var(--accent);padding:14px 16px;font-size:14px;line-height:1.6}
+.rating .lbl{font-size:12px;letter-spacing:.1em;color:var(--muted)}
+.rating .val{font-family:var(--f-display);font-size:26px;font-weight:800;color:var(--accent);margin:2px 0 8px}
+.scale{display:flex;gap:4px;margin-bottom:12px}
+.scale i{flex:1;height:8px;background:var(--line);border-radius:2px}
+.scale i.on{background:var(--accent)}
+.rating dl{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin:0}
+.rating dt{color:var(--muted)}
+.rating dd{margin:0;font-weight:700}
+
+.toolbar{display:flex;justify-content:flex-end;margin:18px 0 0}
+.toolbar button{font:inherit;font-size:14px;background:var(--deep-soft);color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:6px 16px;cursor:pointer}
+
+section{margin-top:52px}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(23px,4.2vw,29px);line-height:1.45;margin:0 0 16px;text-wrap:balance;padding-bottom:10px;border-bottom:1px solid var(--line)}
+h3{font-size:18px;margin:26px 0 6px}
+p{margin:0 0 16px}
+strong{font-weight:700}
+mark{background:var(--accent-soft);color:inherit;padding:0 2px}
+
+/* 3行要旨 */
+.takeaways{background:var(--paper);border:1px solid var(--line);padding:20px 22px;margin-top:28px}
+.takeaways h2{border:0;padding:0;margin-bottom:10px;font-size:20px}
+.takeaways ol{margin:0;padding-left:1.4em;display:grid;gap:8px}
+
+/* 時系列 */
+.timeline{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.timeline li{display:grid;grid-template-columns:44px 1fr;gap:14px;padding-bottom:18px;position:relative}
+.timeline li::before{content:"";position:absolute;left:21px;top:40px;bottom:0;width:2px;background:var(--line)}
+.timeline li:last-child::before{display:none}
+.timeline .n{width:44px;height:44px;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font-family:var(--f-mono);font-weight:600;background:var(--bg)}
+.timeline li.oops .n{border-color:var(--accent);color:var(--accent)}
+.timeline b{display:block;font-size:17px}
+.timeline p{margin:2px 0 0;color:var(--muted);font-size:16px}
+
+/* たとえ図 */
+.cast{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 18px}
+@media (max-width:560px){.cast{grid-template-columns:1fr}}
+.role{background:var(--paper);border:1px solid var(--line);padding:14px 16px;min-width:0}
+.role .what{font-size:13px;color:var(--muted);letter-spacing:.04em}
+.role .is{font-family:var(--f-display);font-weight:800;font-size:20px;margin:2px 0 4px}
+.role .real{font-family:var(--f-mono);font-size:13px;color:var(--deep)}
+.role.leak{border-color:var(--accent);background:var(--accent-soft)}
+.role.leak .real{color:var(--accent)}
+
+/* 比較表 */
+.tbl{overflow-x:auto;margin:6px 0 18px}
+table{border-collapse:collapse;width:100%;min-width:520px;background:var(--paper);font-size:15px}
+th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+thead th{background:var(--band);color:var(--band-fg);font-weight:700}
+tbody th{white-space:nowrap;color:var(--muted);font-weight:700}
+td.now{background:var(--accent-soft);font-weight:700}
+
+/* 深掘り */
+details.deep{margin:14px 0 20px;border:1px solid var(--deep);background:var(--deep-soft);border-radius:6px}
+details.deep summary{cursor:pointer;padding:10px 14px;font-weight:700;color:var(--deep);font-size:15px;list-style:none;display:flex;gap:10px;align-items:center}
+details.deep summary::-webkit-details-marker{display:none}
+details.deep summary::before{content:"＋";font-family:var(--f-mono);width:1.2em;text-align:center}
+details.deep[open] summary::before{content:"−"}
+details.deep summary .tag{font-size:11px;letter-spacing:.08em;border:1px solid var(--deep);border-radius:3px;padding:0 6px}
+details.deep .body{padding:4px 16px 14px;font-size:15px;line-height:1.8}
+details.deep .body ul{margin:0 0 10px;padding-left:1.2em}
+details.deep code,.mono{font-family:var(--f-mono);font-size:.88em;word-break:break-all}
+
+.reasons{display:grid;gap:14px;margin-top:8px}
+.reason{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start}
+.reason .k{font-family:var(--f-display);font-weight:800;font-size:28px;color:var(--accent);line-height:1}
+.reason h3{margin:0 0 4px}
+.reason p{margin:0}
+
+.callout{border-left:4px solid var(--accent);background:var(--paper);padding:14px 18px;margin:18px 0}
+.callout p:last-child{margin:0}
+
+ul.plain{padding-left:1.2em;margin:0 0 16px}
+ul.plain li{margin-bottom:6px}
+
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.7}
+footer ul{padding-left:1.2em;margin:6px 0 12px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="band"><div class="wrap"><span>THREAT NOTE ｜ 社内勉強会用解説</span><span>2026.10.09</span></div></div>
+
+<main class="wrap">
+  <header class="cover">
+    <div>
+      <div class="eyebrow">韓国の金融機関で連続データ流出</div>
+      <h1>素人がAIに「丸投げ」して、銀行を破った。</h1>
+      <p class="lede">犯人は凄腕ハッカーではなく、AIにハッキング作業を任せた人物でした。しかも本人はAIとの会話記録を鍵のかかっていない場所に置きっぱなしにしていた。セキュリティ大手CrowdStrikeの報告（2026年10月7日）を、技術の知識がなくても読めるように解説します。</p>
+    </div>
+    <aside class="rating" aria-label="脅威判断">
+      <div class="lbl">脅威判断</div>
+      <div class="val">強い警戒</div>
+      <div class="scale" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+      <dl>
+        <dt>期間</dt><dd>2026年9月下旬〜10月上旬</dd>
+        <dt>標的</dt><dd>韓国の銀行など複数</dd>
+        <dt>被害</dt><dd>データ流出</dd>
+        <dt>犯人</dt><dd>特定されず</dd>
+      </dl>
+    </aside>
+  </header>
+
+  <div class="toolbar"><button type="button" id="toggleAll" aria-pressed="false">詳しい人向けの「深掘り」をすべて開く</button></div>
+
+  <div class="takeaways">
+    <h2>3行でいうと</h2>
+    <ol>
+      <li>犯人はAI搭載の「自動ハッキング道具」を使い、短期間で複数の金融機関に侵入した。</li>
+      <li>手口はお粗末。AIとの会話や指示書を外から丸見えの場所に放置し、自分の経歴まで入力していた。</li>
+      <li>お粗末な人物でも銀行を破れる。<mark>攻撃の参入ハードルが大きく下がった</mark>ことが、この事件の本当の怖さ。</li>
+    </ol>
+  </div>
+
+  <section>
+    <h2>何が起きたのか</h2>
+    <p>2026年9月下旬から、韓国の金融機関で相次いでデータが盗まれました。ある銀行では、<strong>融資の仲介業者が使う「ローン審査の進み具合を確認するサービス」</strong>が破られました。別の銀行では、<strong>社員がスマホで使う業務支援システム</strong>が狙われています。被害を受けた組織の数はまだ確定していません。</p>
+    <p>調査したCrowdStrikeが犯人側のサーバーを調べたところ、驚くほど多くの手がかりが出てきました。順に追っていきます。</p>
+
+    <ol class="timeline">
+      <li><span class="n">1</span><div><b>「自動ハッキング道具」を入手</b><p>中国で公開されたばかりの無料ツール「ARTEX」を用意。本来は企業が自社の弱点を点検するための道具です。</p></div></li>
+      <li><span class="n">2</span><div><b>頭脳としてAIをレンタル</b><p>中国製AI「DeepSeek」などを、ネット経由で安く借りて道具に接続しました。</p></div></li>
+      <li><span class="n">3</span><div><b>韓国の金融機関に一斉攻撃</b><p>AIが侵入口を探し、システムに入り込み、データを持ち出しました。</p></div></li>
+      <li class="oops"><span class="n">4</span><div><b>盗んだデータの「売り先」をAIに相談</b><p>「韓国の流出データはどこで売れるか」「売買しているチャットグループはどこか」とAIに質問していました。</p></div></li>
+      <li class="oops"><span class="n">5</span><div><b>自分の手柄で「履歴書」を作らせる</b><p>攻撃の成果を盛り込んだ「セキュリティ研究者の履歴書」をAIに作らせ、名前・電話番号・出身大学・居住地まで入力していました。</p></div></li>
+      <li class="oops"><span class="n">6</span><div><b>すべて丸見えの場所に放置</b><p>AIへの指示書や会話履歴を、誰でも覗けるサーバー上に置きっぱなし。それが調査の決め手になりました。</p></div></li>
+    </ol>
+
+    <details class="deep">
+      <summary><span class="tag">深掘り</span>犯人のインフラと証拠の中身</summary>
+      <div class="body">
+        <ul>
+          <li><strong>2台構成のサーバー</strong>：香港のIPアドレスが司令塔、<code>38.244.50[.]120</code> がARTEX本体。後者の公開ディレクトリに <code>.claude/CLAUDE.md</code> があり、中身は中国語の「ペンテスト指示書」でした。</li>
+          <li>香港側の公開ディレクトリからは、<strong>Claude Codeのセッション履歴、ARTEXの設定ファイル、Claudeのメモリファイル</strong>が見つかっています。</li>
+          <li>攻撃中は9つのプロキシIPを経由して身元を隠そうとしていました。それでも作業記録を公開状態にしていたので、効果は限定的でした。</li>
+          <li>韓国の報道でも、攻撃サーバー上のHTMLに「ARTEX」の文字列が見つかったと指摘されていました。複数の被害組織で同じIPアドレスが使われていたとの報道もあります。</li>
+          <li>MITRE ATT&amp;CKでの分類は、VPS調達（T1583.003）、<strong>AI能力の入手（T1588.007）</strong>、プロキシ利用（T1090）。AIの入手が攻撃手法として正式に分類されている点が象徴的です。</li>
+        </ul>
+        <p style="margin:0">履歴書に入力された個人情報についてCrowdStrikeは「犯人本人のものである可能性が高いが、現時点では断定できない」としています。このページでは個人情報の中身は載せていません。</p>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>たとえるなら「自動ピッキングロボのレンタル」</h2>
+    <p>技術用語を泥棒の話に置き換えると、登場人物はこうなります。</p>
+    <div class="cast">
+      <div class="role"><div class="what">ロボット本体</div><div class="is">自動ピッキングロボ</div><div class="real">ARTEX（無料で公開）</div></div>
+      <div class="role"><div class="what">ロボの頭脳</div><div class="is">レンタルした人工知能</div><div class="real">DeepSeek ほか</div></div>
+      <div class="role"><div class="what">頭脳の調達先</div><div class="is">又貸し業者</div><div class="real">AIの再販サービス</div></div>
+      <div class="role leak"><div class="what">致命的なミス</div><div class="is">作業日誌を玄関に放置</div><div class="real">会話履歴が丸見え</div></div>
+    </div>
+    <p>昔なら鍵開けの腕を何年も磨く必要がありました。今は、ロボを無料で手に入れ、頭脳を安く借りれば、<strong>腕のない泥棒でも金庫の前まで行けてしまう</strong>。ただし、この泥棒は作業日誌を玄関に置いて帰ったわけです。</p>
+  </section>
+
+  <section>
+    <h2>お粗末なのに、なぜ成功したのか</h2>
+    <p>ここが一番大事なポイントです。犯人の手口は、プロの犯罪集団から見れば素人同然でした。それでも複数の銀行に侵入できたのは、<strong>難しい部分をAIが肩代わりした</strong>からです。</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">従来のハッカー</th><th scope="col">今回の犯人</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">必要な技術</th><td>長年の専門知識</td><td class="now">AIへの指示が書ければよい</td></tr>
+          <tr><th scope="row">道具</th><td>自作、または闇市場で購入</td><td class="now">無料の公開ツール</td></tr>
+          <tr><th scope="row">頭脳のコスト</th><td>人件費（自分や仲間の時間）</td><td class="now">AI利用料。ごく安い</td></tr>
+          <tr><th scope="row">攻撃のペース</th><td>1件ずつ手作業</td><td class="now">短期間で複数の組織に</td></tr>
+          <tr><th scope="row">証拠隠し</th><td>プロは徹底する</td><td class="now">会話記録を放置</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <p>株式の世界に例えれば、<strong>ネット証券と手数料無料化で個人投資家が一気に増えたのと同じ構図</strong>です。参加のハードルが下がると、プレーヤーの数が爆発的に増えます。攻撃する側にも同じことが起きつつあります。CrowdStrikeも「攻撃者は今後もAIで攻撃のスピードと能力を高めていく」と見ています。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>使われたAIは、自前のパソコンで動かしていたのか</h2>
+    <p>答えは「いいえ」。犯人はAIを手元で動かさず、<strong>ネット経由で借りていました</strong>。しかも本家から直接ではなく、又貸し業者のようなサービスを通していたとみられます。</p>
+    <p>主力のDeepSeekは、設計図にあたる「重み」が無料公開されていて、誰でもダウンロードして動かせます。ところが実際に動かすには大型のAI用サーバーが必要で、数千万円規模の投資になります。借りれば、文庫本数冊分の文章を読ませても数十円程度。犯人が借りる方を選んだのは自然です。</p>
+    <p>ただし借りるということは、<strong>自分の指示が他人のサーバーを通る</strong>ということでもあります。安さと手軽さを取った分、秘密は守りにくくなる。この点も今回のお粗末さとつながっています。</p>
+
+    <details class="deep">
+      <summary><span class="tag">深掘り</span>モデル構成とスペック</summary>
+      <div class="body">
+        <ul>
+          <li><strong>ARTEXの主力</strong>：DeepSeek V4.1-Flash（2026年9月10日公開）。MITライセンスのオープンウェイト。</li>
+          <li><strong>補助</strong>：GLM-5.3（Zhipu AI）、Grok 4.6。さらにClaude Codeも並行して使っていました。</li>
+          <li><strong>調達経路</strong>：LLM APIのプロキシ/リセラーとみられる <code>xcai[.]pro</code> 経由。</li>
+          <li><strong>V4.1-Flashの規模</strong>：総パラメータ約5,520億のMoE。1トークンあたりの稼働は入力処理で約80億、生成で約160億。コンテキストは最大100万トークン。</li>
+          <li><strong>ローカル実行の壁</strong>：MoEは稼働分が小さくても全重みをメモリに載せる必要があります。FP8でも重みだけで約550GB。H100を8枚積んだクラスのサーバーが目安です。</li>
+          <li><strong>API価格</strong>：100万トークンあたり入力0.15〜0.3ドル、出力0.6〜1.2ドル程度（提供元や時間帯で異なる）。</li>
+        </ul>
+        <p style="margin:0">攻撃の参入障壁が「GPU資産」から「API利用料」に下がった、という見方ができます。</p>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>AIは「悪いこと」を断らないのか</h2>
+    <p>多くのAIは、明らかな犯罪の手伝いを断るよう訓練されています。それでも今回、攻撃は成功しました。理由は3つあります。</p>
+    <div class="reasons">
+      <div class="reason"><span class="k">壱</span><div><h3>攻撃と点検は、やることが同じ</h3><p>ARTEXは建前上、企業が自社の弱点を調べる「点検ツール」です。犯人の指示書も「点検の手順書」の形でした。依頼を小分けにすれば、一つひとつは正当なセキュリティ業務と見分けがつきません。</p></div></div>
+      <div class="reason"><span class="k">弐</span><div><h3>断る強さはAIの作り手しだい</h3><p>断る仕組みは各社が独自に組み込むもので、強さに差があります。犯人が主力に選んだ中国系のAIは、この種の依頼に比較的寛容だと指摘されることが多いモデルです。又貸し業者経由なら、本家に利用を止められる心配も小さくなります。</p></div></div>
+      <div class="reason"><span class="k">参</span><div><h3>断られたら、別のAIに頼めばいい</h3><p>犯人は複数のAIを使い分けていました。一つに断られても、言い方を変えるか別のAIに回せば済みます。</p></div></div>
+    </div>
+
+    <details class="deep">
+      <summary><span class="tag">深掘り</span>セーフガードの限界について</summary>
+      <div class="body">
+        <ul>
+          <li>攻撃と防御が同じ作業になる「デュアルユース」問題は、ペネトレーションテスト分野で特に深刻です。モデル側は依頼者に許可があるかを確かめられません。</li>
+          <li>ガードが比較的固いとされるClaude Codeでも、2025年にAnthropic自身が、「正規の診断」を装った指示で国家支援とみられる攻撃グループに悪用された事例を公表しています。</li>
+          <li>オープンウェイトのモデルは、手元で動かせば提供元の監視が及ばず、安全訓練を外す改変も可能です。今回はAPI経由でしたが、選択肢として常に存在します。</li>
+        </ul>
+        <p style="margin:0">拒否はあくまで攻撃コストを上げる壁の一つで、それだけでは止めきれない、というのが実態です。</p>
+      </div>
+    </details>
+  </section>
+
+  <section>
+    <h2>私たちにとって何を意味するか</h2>
+    <h3>金融機関は「量産型の攻撃」の標的になる</h3>
+    <p>腕のいい犯罪集団だけを警戒すればよかった時代は終わりつつあります。AIを使えば、素人が短期間に何件も攻撃を仕掛けられる。攻撃の数そのものが増えると考えるべきです。</p>
+    <h3>狙われたのは「日常業務のシステム」</h3>
+    <p>今回破られたのは、仲介業者向けの照会サービスや、社員がスマホで使う業務システムでした。中枢の基幹システムではなく、<strong>外部とつながる周辺の窓口</strong>が入り口になっています。証券会社でも、営業が使う社用スマホのアプリや、取引先向けのWebサービスは同じ立場にあります。</p>
+    <h3>お客様との会話で使えるひとこと</h3>
+    <ul class="plain">
+      <li>「AIのおかげで、腕のない犯人でも銀行を破れる時代になりました」</li>
+      <li>「ただ、AI任せの犯人は証拠も山ほど残します。今回は犯人の履歴書まで見つかりました」</li>
+      <li>「攻撃の数が増える以上、守る側のAI活用も、もはや必須になっています」</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p><strong>出典</strong></p>
+    <ul>
+      <li><a href="https://www.crowdstrike.com/en-us/blog/unknown-threat-actor-uses-artex-to-target-south-korean-finance/" target="_blank" rel="noopener">CrowdStrike: Unknown Threat Actor Uses AI-Driven ARTEX to Target South Korean Finance（2026年10月7日）</a></li>
+      <li><a href="https://www.khan.co.kr/en/article/202610042320007" target="_blank" rel="noopener">京郷新聞（CrowdStrikeが引用した韓国報道）</a></li>
+      <li><a href="https://thenextweb.com/news/deepseek-v4-1-flash-launch-v4-pro-retired-price-cut" target="_blank" rel="noopener">The Next Web: DeepSeek V4.1-Flash の公開</a></li>
+      <li><a href="https://openrouter.ai/deepseek/deepseek-v4.1-flash-20260910" target="_blank" rel="noopener">OpenRouter: DeepSeek V4.1 Flash の仕様と価格</a></li>
+    </ul>
+    <p>犯人の特定は「中国語話者で金銭目的の可能性が高い（確度：中程度）」にとどまり、特定の組織には結び付けられていません。本ページは公開情報をもとにした解説で、個人情報やIPアドレスの一覧は意図的に省いています。</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var btn=document.getElementById('toggleAll');
+  var all=function(){return Array.prototype.slice.call(document.querySelectorAll('details.deep'));};
+  function sync(){
+    var open=all().every(function(d){return d.open;});
+    btn.setAttribute('aria-pressed',open?'true':'false');
+    btn.textContent=open?'「深掘り」をすべて閉じる':'詳しい人向けの「深掘り」をすべて開く';
+  }
+  btn.addEventListener('click',function(){
+    var open=!all().every(function(d){return d.open;});
+    all().forEach(function(d){d.open=open;});
+    sync();
+  });
+  all().forEach(function(d){d.addEventListener('toggle',sync);});
+})();
+</script>
+</body>
+</html>
