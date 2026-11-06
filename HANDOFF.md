@@ -28,6 +28,7 @@
 - マルタ島：本人の言葉は「地中海の観光地」だけ（2026-09-14、出先から）。上の方針を当てて、蜂蜜色の石灰岩の家並みと木の出窓、港と舟、集落と教会のドーム、近景から遠景まで、人はいないか小さい、とした。島全体が観光地なので「観光地の地名を避ける」方針の例外。首都（valletta）と漁港（marsaxlokk）は絵葉書に寄りやすいので差し込みの重みにしてある。**語はまだ本人の目で見ていない**
 - シベリア：本人の言葉は「シベリアの風景を追加したい」「ソ連的なアパートとかも欲しい。木造にこだわるより、共産主義の景色もみたい。広めに取れる方が良い」（2026-09-17）。風景（ヤクーチア、バイカル、タイガ、アルタイ、木造の街）と、ソ連の街（団地、大通り、バス停、記念碑、工場町）の両方。冬が主体だが季節は問わない。**語はまだ本人の目で見ていない**
 - 静かな部屋：本人の言葉は「これまでとは少し違うが、ミニマルな風景やシーンも含めていきたい」（2026-09-21、言語化が不十分と本人）。こちらから 4 つの型（A 消える風景／B 建物の正面／C 静かなシーン／D 幾何学と色面）を示し、**C が一番近い**との答え。室内や身近な一角。窓辺の椅子、テーブルの上の一杯、カーテン越しの光、雨の窓辺。要素は 1〜2 つで余白が多い。人はいない。色あせた、落ち着いた色。白黒は含めない（未確認の判断）。独立したテーマにした（近景で既存と性質が違う）。**語はまだ本人の目で見ていない**。A（雪原の一本の木、霧の桟橋）と B（ソ連のバス停、白い壁の窓）は本人が選ばなかったが、いずれ差し込みの候補
+- サンクトペテルブルク：本人の言葉は「サンクトペテルブルクの様々な街並みを見たい」（2026-11-06）。「様々」を、中心部の運河と堤だけでなく中庭（ドヴォール・コロージェツ）、団地（クプチノ）、冬と雨の通り、路面電車、郊外まで、と読んだ。ソ連の景色の好みも引き継ぐ。**語はまだ本人の目で見ていない**
 - 「人々の営み」は人物ではなく痕跡（灯りの窓、看板、耕された畑）。人はいないか小さい
 - 「色あせた色合い」は表示側で彩度を落とすのではなく語で狙う（本人の判断。色あせた色調で撮る写真家はそれが映える被写体を選んでいる）。Unsplash では `film photography` を語に含める
 - ヨーロッパの村は本人の判断で削除
@@ -40,7 +41,8 @@
 | `manifest.json`, `icon.svg`, `icon-192.png`, `icon-512.png` | ホーム画面に追加すると全画面で起動する PWA 設定とアイコン |
 | `rain/raindrop-fx.js`, `rain/LICENSE`, `rain/README.md` | 雨の演出ライブラリ [raindrop-fx](https://github.com/SardineFish/raindrop-fx) 1.0.8 の同梱（MIT、SardineFish）。雨をオンにしたときだけ読み込む |
 | `rain/sounds/*.mp3`, `rain/sounds/README.md` | 屋外の柔らかい雨音 3 本（Freesound、CC0、プレビュー品質の MP3、計 17MB。豪雨の 9 分が 11.7MB）と出どころ |
-| `.github/workflows/pages.yml` | main への push で `index.html`・`manifest.json`・アイコン・`rain/`（ライブラリと雨音）を GitHub Pages に配置 |
+| `.github/workflows/pages.yml` | main への push で `index.html`・`manifest.json`・アイコン・`rain/`（ライブラリと雨音）・`ai-heist/` を GitHub Pages に配置 |
+| `ai-heist/index.html` | 青の時間とは別の 1 枚ページ（本人が 2026-10 に直接 main に追加。この文書の対象外） |
 | `README.md` | 使いかた |
 | `HANDOFF.md` | この文書 |
 
@@ -56,7 +58,7 @@
 鍵は URL のハッシュにだけ残り、リポジトリには入らない。
 
 ### テーマ（複数可）とキー
-- ブルーモーメント／プリンス・エドワード島／雪と灯り／田園と空／アンコモン・プレイス（アメリカ）／日本の街／マルタ島／シベリア／静かな部屋
+- ブルーモーメント／プリンス・エドワード島／雪と灯り／田園と空／アンコモン・プレイス（アメリカ）／日本の街／マルタ島／シベリア／静かな部屋／サンクトペテルブルク
 - キー：Space 停止・再開、→ 次、L お気に入り、R 雨の段階、F 全画面、C キャプション、D 検索語表示、S 設定、Esc 閉じる
 
 ### 見せかた
@@ -102,7 +104,7 @@
 - シベリア（2026-09-17 に API で確認）：認定画像は語ごとに少ない（`yakutia` 品質 41、`taiga` 60、`olkhon` 秀逸 9・品質 23、`irkutsk wooden house` 品質 21、`baikal winter` 4、`altai village` 8）。**一般語は外れる**：`siberia village` と `siberian village winter` は 1900 年前後の古写真と本のスキャン、`siberia winter` はジャンガリアンハムスター（学名 Phodopus sungorus の説明に当たる）、`trans-siberian railway` はファベルジェの卵・切手・地図。**建物語＋地域は 0 件**（`khrushchyovka siberia`、`soviet apartment building siberia`、`panel building novosibirsk`。Commons は AND なので両方書かれた写真がない）。**ソ連の街は都市名で当てる**：`norilsk`（757、レーニン大通り、典型的な住宅）、`omsk street`（1166）、`krasnoyarsk street`（4975）、`novosibirsk winter`（169、街路と河港）、`yakutsk`（4677、大通り）、`ulan-ude`、`barnaul`、`bratsk`。都市名単独は紋章・旗・地図・トラムが混じるので除外語を付けた。`bus stop siberia` は 7 件だけ。これらは認定に無いので語ごとに `plain`
 - Commons のカテゴリ名：団地は「Khrushchyovkas」ではなく「Khrushchev's apartment buildings in ○○」「Panel apartment blocks in ○○（国別）」。ノリリスクは「Buildings in Norilsk」「Streets in Norilsk」。`deepcat:"Buildings in Novosibirsk"` のようなサブカテゴリまで辿る検索は動く（45 件）が、空港やカフェまで混じって雑。団地カテゴリの deepcat は確かめきれなかった：`deepcat:"Khrushchev's apartment buildings in Russia"` は 0 件、`deepcat:"Panel apartment blocks in Russia"` と `deepcat:"Soviet architecture in Russia" siberia` は 429 が続いて結果を得られなかった（2 日で 100 回ほど叩いた影響）。団地は都市名の語で拾う前提。本人の目で足りなければ、日を置いてこの 2 つを確かめる
 - 静かな部屋（2026-09-21 に API で確認）：**Commons は室内に向かない**。`still life cup` は 17 世紀の静物画、`window chair` は窓掃除の椅子と教会のステンドグラス、`kitchen window light` は米国の建築記録（HABS）の台所内装、`window sill` は PVC 窓枠の施工写真、`table lamp evening` は「DFC」「DZ6」の接頭辞がついた AI 生成らしき投稿。認定画像もマナーハウスや教会ばかり。`empty apartment room window` の連作と `chair window` に除外語を付けたものだけ残し、Unsplash を本命にした
-- **Unsplash の新しい語の当たりはまだ本人の目で見ていない**（マルタ島、シベリア、静かな部屋も含む）。「検索語の当たりを見る」で確かめてもらうところで止まっている（雨の作業が先になった）
+- **Unsplash の新しい語の当たりはまだ本人の目で見ていない**（マルタ島、シベリア、静かな部屋、サンクトペテルブルクも含む）。「検索語の当たりを見る」で確かめてもらうところで止まっている（雨の作業が先になった）
 
 ## 雨の窓ガラス（演出）
 

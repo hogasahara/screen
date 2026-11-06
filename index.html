@@ -209,6 +209,7 @@
     <label><input type="checkbox" name="theme" value="malta"> マルタ島</label>
     <label><input type="checkbox" name="theme" value="siberia"> シベリア</label>
     <label><input type="checkbox" name="theme" value="room"> 静かな部屋</label>
+    <label><input type="checkbox" name="theme" value="spb"> サンクトペテルブルク</label>
     <small>Wikimedia Commons・Unsplash・Flickr のときに効きます。</small>
     <button class="file" id="btnSheet" type="button">検索語の当たりを見る</button>
     <small>いま選んでいる出どころとテーマの語ごとに、取れた写真を一覧にします。Unsplash では語の数だけ要求を使います。</small>
@@ -370,6 +371,16 @@
       unsplash: ['minimal interior window light', 'chair by the window', 'cup on table window light', 'curtain morning light', 'empty room natural light',
                  'quiet interior film photography', 'kitchen table morning light', 'window sill light', 'rainy window interior', 'desk lamp evening room',
                  { q: 'bed linen morning light', w: 0.5 }, { q: 'book on table window', w: 0.4 }, { q: 'tea cup rainy day', w: 0.4 }] },
+    spb: { name: 'サンクトペテルブルク',
+      // 本人の言葉：「サンクトペテルブルクの様々な街並みを見たい」（2026-11-06）。中心部の運河と堤だけでなく、中庭（ドヴォール）、
+      // 団地（クプチノ）、冬と雨の通り、路面電車、郊外まで広く。ソ連の景色の好みも引き継ぐ。人はいないか小さい。色あせた色合い
+      commons: ['saint petersburg street', 'saint petersburg courtyard', 'saint petersburg winter street', { q: 'saint petersburg embankment', w: 0.6 },
+                { q: 'saint petersburg canal', w: 0.6 }, { q: 'vasilievsky island', w: 0.5 }, { q: 'kupchino', w: 0.5, plain: true },
+                { q: 'saint petersburg tram', w: 0.3, plain: true }, { q: 'saint petersburg rain', w: 0.4, plain: true }],
+      unsplash: ['saint petersburg street', 'saint petersburg courtyard', 'saint petersburg winter street', 'saint petersburg canal evening',
+                 'saint petersburg embankment', 'saint petersburg rain street', 'saint petersburg soviet apartment blocks', 'saint petersburg film photography',
+                 'saint petersburg tram', 'saint petersburg suburb winter', { q: 'saint petersburg white nights', w: 0.4 },
+                 { q: 'saint petersburg metro', w: 0.3 }, { q: 'saint petersburg bridge night', w: 0.3 }] },
   };
   const SOURCE_NAMES = { commons: 'Wikimedia Commons', unsplash: 'Unsplash', flickr: 'Flickr', favorites: 'お気に入り', local: '自分のフォルダ' };
 
