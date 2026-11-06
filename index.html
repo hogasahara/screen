@@ -374,9 +374,11 @@
     spb: { name: 'サンクトペテルブルク',
       // 本人の言葉：「サンクトペテルブルクの様々な街並みを見たい」（2026-11-06）。中心部の運河と堤だけでなく、中庭（ドヴォール）、
       // 団地（クプチノ）、冬と雨の通り、路面電車、郊外まで広く。ソ連の景色の好みも引き継ぐ。人はいないか小さい。色あせた色合い
-      commons: ['saint petersburg street', 'saint petersburg courtyard', 'saint petersburg winter street', { q: 'saint petersburg embankment', w: 0.6 },
-                { q: 'saint petersburg canal', w: 0.6 }, { q: 'vasilievsky island', w: 0.5 }, { q: 'kupchino', w: 0.5, plain: true },
-                { q: 'saint petersburg tram', w: 0.3, plain: true }, { q: 'saint petersburg rain', w: 0.4, plain: true }],
+      // Commons で確かめたこと（2026-11-06）：通り（品質 4543）、中庭（品質 42、連作）、堤（459）、運河（203）、ヴァシリエフスキー島（150）、
+      // 路面電車（45）は認定画像から取れる。「winter」は冬宮（Winter Palace）に当たるので除外語。クプチノと雨はレート制限で未確認（plain で薄く）
+      commons: ['saint petersburg street', 'saint petersburg courtyard', { q: 'saint petersburg winter -palace', w: 0.8 },
+                { q: 'saint petersburg embankment', w: 0.6 }, { q: 'saint petersburg canal', w: 0.6 }, { q: 'vasilievsky island', w: 0.5 },
+                { q: 'kupchino', w: 0.5, plain: true }, { q: 'saint petersburg rain -palace', w: 0.4, plain: true }, { q: 'saint petersburg tram', w: 0.3 }],
       unsplash: ['saint petersburg street', 'saint petersburg courtyard', 'saint petersburg winter street', 'saint petersburg canal evening',
                  'saint petersburg embankment', 'saint petersburg rain street', 'saint petersburg soviet apartment blocks', 'saint petersburg film photography',
                  'saint petersburg tram', 'saint petersburg suburb winter', { q: 'saint petersburg white nights', w: 0.4 },
